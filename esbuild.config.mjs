@@ -1,7 +1,16 @@
 import esbuild from "esbuild";
 import builtins from "builtin-modules";
+import { copyFileSync } from "node:fs";
 
 const prod = process.argv[2] === "production";
+
+// Excalidraw's stylesheet ships as the plugin's styles.css.
+const copyStyles = {
+	name: "copy-styles",
+	setup(build) {
+		build.onEnd(() => copyFileSync(`node_modules/@excalidraw/excalidraw/dist/${prod ? "prod" : "dev"}/index.css`, "styles.css"));
+	},
+};
 
 const ctx = await esbuild.context({
 	entryPoints: ["src/main.ts"],
@@ -15,8 +24,8 @@ const ctx = await esbuild.context({
 	minify: prod,
 	define: { "process.env.NODE_ENV": prod ? '"production"' : '"development"' },
 	conditions: [prod ? "production" : "development"],
-	loader: { ".woff2": "dataurl" },
 	outfile: "main.js",
+	plugins: [copyStyles],
 });
 
 if (prod) {
