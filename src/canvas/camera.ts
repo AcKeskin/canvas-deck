@@ -81,8 +81,11 @@ export class CameraController {
 		return { width: s.width, height: s.height };
 	}
 
-	set(cam: Camera) {
-		this.host.updateScene({ appState: { scrollX: cam.scrollX, scrollY: cam.scrollY, zoom: { value: cam.zoom } } });
+	/** `moving` reuses cached shapes across zoom levels, like Excalidraw does while you zoom. */
+	set(cam: Camera, moving = false) {
+		this.host.updateScene({
+			appState: { scrollX: cam.scrollX, scrollY: cam.scrollY, zoom: { value: cam.zoom }, shouldCacheIgnoreZoom: moving },
+		});
 	}
 
 	/** Moves to the bounds. Resolves when done; a newer move cancels this one. */
@@ -103,7 +106,7 @@ export class CameraController {
 			const step = () => {
 				if (token !== this.token) return resolve();
 				const t = Math.min(1, (this.clock.now() - start) / duration);
-				this.set(lerpCamera(from, to, easeInOut(t), vp));
+				this.set(lerpCamera(from, to, easeInOut(t), vp), t < 1);
 				if (t >= 1) settle(resolve);
 				else this.clock.frame(step);
 			};

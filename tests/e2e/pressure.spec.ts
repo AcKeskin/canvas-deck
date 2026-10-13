@@ -18,14 +18,13 @@ async function penStroke(page: Page, y: number, pressure: number) {
 	for (let x = 310; x <= 700; x += 10) await send("mouseMoved", x, 1);
 	await send("mouseReleased", 700, 0);
 	await page.waitForTimeout(50);
-	return page.evaluate(async () => {
+	return page.evaluate(() => {
 		const els = window.harness.engine!.api.getSceneElements();
 		const el = els[els.length - 1] as any;
 		// The stroke renders as a filled outline; for a flat line its height is the thickness.
-		const { getFreeDrawSvgPath } = await import("/@id/@excalidraw/excalidraw" as any);
 		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-		path.setAttribute("d", getFreeDrawSvgPath(el));
+		path.setAttribute("d", window.harness.freeDrawPath(el));
 		svg.appendChild(path);
 		document.body.appendChild(svg);
 		const thickness = path.getBBox().height;

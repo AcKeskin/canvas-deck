@@ -8,5 +8,6 @@ export default defineConfig({
 		viewport: { width: 1600, height: 900 },
 		launchOptions: process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {},
 	},
-	webServer: { command: "npx vite", url: "http://localhost:5199", reuseExistingServer: true },
+	// Tests run against a production build so speed numbers are real.
+	webServer: { command: "npx vite build && npx vite preview --port 5199 --strictPort", url: "http://localhost:5199", reuseExistingServer: true },
 });

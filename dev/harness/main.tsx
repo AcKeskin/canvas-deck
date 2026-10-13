@@ -1,5 +1,5 @@
 import "@excalidraw/excalidraw/index.css";
-import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
+import { convertToExcalidrawElements, getFreeDrawSvgPath } from "@excalidraw/excalidraw";
 import { createRoot } from "react-dom/client";
 import type { CanvasEngine, ImageStore } from "../../src/canvas/engine";
 import { SlideCanvas } from "../../src/canvas/SlideCanvas";
@@ -30,10 +30,15 @@ const initial: SlideData = {
 
 declare global {
 	interface Window {
-		harness: { engine: CanvasEngine | null; files: Map<string, string>; saves: number };
+		harness: {
+			engine: CanvasEngine | null;
+			files: Map<string, string>;
+			saves: number;
+			freeDrawPath: typeof getFreeDrawSvgPath;
+		};
 	}
 }
-window.harness = { engine: null, files, saves: 0 };
+window.harness = { engine: null, files, saves: 0, freeDrawPath: getFreeDrawSvgPath };
 
 createRoot(document.getElementById("root")!).render(
 	<SlideCanvas

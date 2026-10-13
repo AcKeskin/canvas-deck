@@ -1,6 +1,8 @@
 import { FuzzySuggestModal, normalizePath, Plugin, type App, type TFile } from "obsidian";
 import { SLIDE_EXTENSION, SlideView, VIEW_TYPE } from "./canvas/canvas-view";
 import { createSlide, serializeSlide } from "./canvas/slide-data";
+import { perfSlideSkeletons } from "./dev/perf-slide";
+import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import { isImagePath } from "./canvas/vault-images";
 
 export default class CanvasDeckPlugin extends Plugin {
@@ -12,6 +14,12 @@ export default class CanvasDeckPlugin extends Plugin {
 			id: "new-slide",
 			name: "New canvas slide",
 			callback: () => this.newSlide(),
+		});
+
+		this.addCommand({
+			id: "new-perf-slide",
+			name: "New 2,000-object test slide",
+			callback: () => this.newSlide({ ...createSlide(), elements: convertToExcalidrawElements(perfSlideSkeletons(2000)) }),
 		});
 
 		this.addCommand({
@@ -77,13 +85,13 @@ export default class CanvasDeckPlugin extends Plugin {
 		return this.app.workspace.getActiveViewOfType(SlideView);
 	}
 
-	private async newSlide() {
+	private async newSlide(slide = createSlide()) {
 		const folder = this.app.fileManager.getNewFileParent(this.app.workspace.getActiveFile()?.path ?? "");
 		let path = normalizePath(`${folder.path}/Untitled slide.${SLIDE_EXTENSION}`);
 		for (let i = 1; this.app.vault.getAbstractFileByPath(path); i++) {
 			path = normalizePath(`${folder.path}/Untitled slide ${i}.${SLIDE_EXTENSION}`);
 		}
-		const file = await this.app.vault.create(path, serializeSlide(createSlide()));
+		const file = await this.app.vault.create(path, serializeSlide(slide));
 		await this.app.workspace.getLeaf(true).openFile(file);
 	}
 }
