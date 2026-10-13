@@ -92,9 +92,11 @@ export class CameraController {
 		const vp = this.viewport;
 		const from = this.camera;
 		const to = cameraForBounds(b, vp);
+		// Excalidraw applies scene updates async, so resolve one frame after the last set.
+		const settle = (resolve: () => void) => this.clock.frame(resolve);
 		if (!animate || duration <= 0) {
 			this.set(to);
-			return Promise.resolve();
+			return new Promise(settle);
 		}
 		const start = this.clock.now();
 		return new Promise((resolve) => {
@@ -102,7 +104,7 @@ export class CameraController {
 				if (token !== this.token) return resolve();
 				const t = Math.min(1, (this.clock.now() - start) / duration);
 				this.set(lerpCamera(from, to, easeInOut(t), vp));
-				if (t >= 1) resolve();
+				if (t >= 1) settle(resolve);
 				else this.clock.frame(step);
 			};
 			this.clock.frame(step);
