@@ -2,6 +2,8 @@
 
 Obsidian plugin for slide decks where each slide is an infinite canvas.
 
+A fully vibe-coded Obsidian plugin I made for myself, built with "contexture".
+
 Planning docs: `.claude/visions`, `.claude/specs`, `.claude/plans`.
 
 ## Dev
