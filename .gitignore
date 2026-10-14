@@ -7,4 +7,7 @@ test-results/
 playwright-report/
 dev/dist/
 .claude/autonomy/
+.claude/worktrees/
+.claude/sessions-active.md
+.claude/settings.local.json
 dev/harness/public/
