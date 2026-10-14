@@ -131,3 +131,50 @@ describe("saved views", () => {
 		expect(removeView(s, "b").views.map((v) => v.id)).toEqual(["a", "c"]);
 	});
 });
+
+describe("camera motion picture", () => {
+	const slide = addView(createSlide(), { id: "b", name: "B", bounds: { x: 3000, y: -500, width: 800, height: 450 } });
+
+	function fakeMotion(available = true) {
+		const log: string[] = [];
+		return {
+			log,
+			begin: () => (log.push("begin"), available),
+			frame: () => log.push("frame"),
+			end: () => log.push("end"),
+		};
+	}
+
+	test("animates the picture, sets the real camera once at the end", async () => {
+		const host = fakeHost();
+		const clock = fakeClock();
+		const cam = new CameraController(host, clock);
+		const motion = fakeMotion();
+		cam.motion = motion;
+		let sets = 0;
+		const orig = host.updateScene;
+		host.updateScene = (s) => (sets++, orig(s));
+		const done = cam.goToView(slide, "b", { duration: 300 });
+		clock.run();
+		await done;
+		expect(sets).toBe(1);
+		expect(motion.log[0]).toBe("begin");
+		expect(motion.log.filter((l) => l === "frame").length).toBeGreaterThan(5);
+		expect(motion.log[motion.log.length - 1]).toBe("end");
+		near(cam.currentBounds(), slide.views[0].bounds);
+	});
+
+	test("falls back to normal animation when no picture is ready", async () => {
+		const host = fakeHost();
+		const clock = fakeClock();
+		const cam = new CameraController(host, clock);
+		cam.motion = fakeMotion(false);
+		let sets = 0;
+		const orig = host.updateScene;
+		host.updateScene = (s) => (sets++, orig(s));
+		const done = cam.goToFrame(slide, { duration: 300 });
+		clock.run();
+		await done;
+		expect(sets).toBeGreaterThan(5);
+	});
+});

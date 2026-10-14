@@ -1,6 +1,8 @@
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/data/transform";
 
 /** Skeletons for a big mixed test slide: boxes, ellipses, labels, arrows and pen strokes in a grid. */
+const FILLS = ["#a5d8ff", "#b2f2bb", "#ffec99", "#ffc9c9", "#d0bfff"];
+
 export function perfSlideSkeletons(count = 2000): ExcalidrawElementSkeleton[] {
 	const out: ExcalidrawElementSkeleton[] = [];
 	const cols = Math.ceil(Math.sqrt(count));
@@ -10,10 +12,10 @@ export function perfSlideSkeletons(count = 2000): ExcalidrawElementSkeleton[] {
 		const roughness = i % 2;
 		switch (i % 5) {
 			case 0:
-				out.push({ type: "rectangle", x, y, width: 160, height: 100, roughness });
+				out.push({ type: "rectangle", x, y, width: 160, height: 100, roughness, backgroundColor: FILLS[((i / 5) | 0) % FILLS.length], fillStyle: "solid" });
 				break;
 			case 1:
-				out.push({ type: "ellipse", x, y, width: 160, height: 100, roughness });
+				out.push({ type: "ellipse", x, y, width: 160, height: 100, roughness, backgroundColor: FILLS[((i / 5) | 0) % FILLS.length], fillStyle: "hachure" });
 				break;
 			case 2:
 				out.push({ type: "text", x, y, text: `Node ${i}`, fontSize: 20 });

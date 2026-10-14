@@ -1,98 +1,92 @@
-import { FuzzySuggestModal, normalizePath, Plugin, type App, type TFile } from "obsidian";
-import { SLIDE_EXTENSION, SlideView, VIEW_TYPE } from "./canvas/canvas-view";
-import { createSlide, serializeSlide } from "./canvas/slide-data";
-import { perfSlideSkeletons } from "./dev/perf-slide";
-import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
+import { FuzzySuggestModal, MarkdownView, normalizePath, Plugin, TFile, type App, type WorkspaceLeaf } from "obsidian";
 import { isImagePath } from "./canvas/vault-images";
+import { DECK_FLAG, serializeDeck } from "./deck/deck-format";
+import { createDeck, type Deck } from "./deck/deck-model";
+import { DECK_VIEW, DeckView } from "./deck/deck-view";
+import { demoDeck } from "./dev/demo-deck";
 
 export default class CanvasDeckPlugin extends Plugin {
+	/** Deck notes the user chose to see as markdown this session. */
+	private asMarkdown = new Set<string>();
+
 	async onload() {
-		this.registerView(VIEW_TYPE, (leaf) => new SlideView(leaf));
-		this.registerExtensions([SLIDE_EXTENSION], VIEW_TYPE);
+		this.registerView(DECK_VIEW, (leaf) => new DeckView(leaf));
+		this.addRibbonIcon("presentation", "New canvas deck", () => this.newDeck(createDeck(), "Untitled deck"));
 
-		this.addCommand({
-			id: "new-slide",
-			name: "New canvas slide",
-			callback: () => this.newSlide(),
+		this.addCommand({ id: "new-deck", name: "New deck", callback: () => this.newDeck(createDeck(), "Untitled deck") });
+		this.addCommand({ id: "new-demo-deck", name: "New demo deck", callback: () => this.newDeck(demoDeck(), "Demo deck") });
+
+		this.deckCommand("present", "Present deck from current slide", (v) => v.handle?.present());
+		this.deckCommand("present-start", "Present deck from start", (v) => v.handle?.present(0));
+		this.deckCommand("home", "Go to start frame", (v) => v.engine && v.engine.camera.goToFrame(v.engine.slide));
+		this.deckCommand("save-view", "Save current view", (v) => v.engine?.saveCurrentView(`View ${(v.engine?.slide.views.length ?? 0) + 1}`));
+		this.deckCommand("insert-image", "Insert vault image", (v) => {
+			new ImagePicker(this.app, (f) => v.engine?.insertImage(f.path)).open();
+		});
+		this.deckCommand("open-markdown", "Open deck as markdown", (v) => {
+			if (!v.file) return;
+			this.asMarkdown.add(v.file.path);
+			v.leaf.setViewState({ type: "markdown", state: { file: v.file.path } });
 		});
 
 		this.addCommand({
-			id: "new-perf-slide",
-			name: "New 2,000-object test slide",
-			callback: () => this.newSlide({ ...createSlide(), elements: convertToExcalidrawElements(perfSlideSkeletons(2000)) }),
-		});
-
-		this.addCommand({
-			id: "insert-image",
-			name: "Insert vault image",
+			id: "open-deck",
+			name: "Open note as deck",
 			checkCallback: (checking) => {
-				const view = this.activeView();
-				if (!view?.engine) return false;
-				if (!checking) new ImagePicker(this.app, (f) => view.engine?.insertImage(f.path)).open();
-				return true;
-			},
-		});
-
-		this.addCommand({
-			id: "home",
-			name: "Go to start frame",
-			checkCallback: (checking) => {
-				const engine = this.activeView()?.engine;
-				if (!engine) return false;
-				if (!checking) engine.camera.goToFrame(engine.slide);
-				return true;
-			},
-		});
-
-		this.addCommand({
-			id: "save-view",
-			name: "Save current view",
-			checkCallback: (checking) => {
-				const engine = this.activeView()?.engine;
-				if (!engine) return false;
-				if (!checking) engine.saveCurrentView(`View ${engine.slide.views.length + 1}`);
-				return true;
-			},
-		});
-
-		this.addCommand({
-			id: "next-view",
-			name: "Go to next saved view",
-			checkCallback: (checking) => {
-				const view = this.activeView();
-				const engine = view?.engine;
-				if (!engine || !engine.slide.views.length) return false;
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (!view?.file || !this.isDeck(view.file)) return false;
 				if (!checking) {
-					const views = engine.slide.views;
-					view.viewIndex = (view.viewIndex + 1) % views.length;
-					engine.camera.goToView(engine.slide, views[view.viewIndex].id);
+					this.asMarkdown.delete(view.file.path);
+					this.openAsDeck(view.leaf, view.file);
 				}
 				return true;
 			},
 		});
 
+		// Deck notes open in the deck view instead of the markdown editor.
+		this.registerEvent(
+			this.app.workspace.on("file-open", (file) => {
+				if (!file || !this.isDeck(file) || this.asMarkdown.has(file.path)) return;
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (view?.file === file) this.openAsDeck(view.leaf, file);
+			}),
+		);
+
 		this.registerEvent(
 			this.app.vault.on("rename", (file, oldPath) => {
 				if (!isImagePath(file.path)) return;
-				this.app.workspace.getLeavesOfType(VIEW_TYPE).forEach((leaf) => {
-					(leaf.view as SlideView).engine?.renameImage(oldPath, file.path);
-				});
+				this.app.workspace.getLeavesOfType(DECK_VIEW).forEach((l) => (l.view as DeckView).renameImage(oldPath, file.path));
 			}),
 		);
 	}
 
-	private activeView(): SlideView | null {
-		return this.app.workspace.getActiveViewOfType(SlideView);
+	private deckCommand(id: string, name: string, run: (v: DeckView) => void) {
+		this.addCommand({
+			id,
+			name,
+			checkCallback: (checking) => {
+				const view = this.app.workspace.getActiveViewOfType(DeckView);
+				if (!view) return false;
+				if (!checking) run(view);
+				return true;
+			},
+		});
 	}
 
-	private async newSlide(slide = createSlide()) {
+	private isDeck(file: TFile): boolean {
+		return file.extension === "md" && this.app.metadataCache.getFileCache(file)?.frontmatter?.[DECK_FLAG] !== undefined;
+	}
+
+	private openAsDeck(leaf: WorkspaceLeaf, file: TFile) {
+		return leaf.setViewState({ type: DECK_VIEW, state: { file: file.path }, active: true });
+	}
+
+	private async newDeck(deck: Deck, baseName: string) {
 		const folder = this.app.fileManager.getNewFileParent(this.app.workspace.getActiveFile()?.path ?? "");
-		let path = normalizePath(`${folder.path}/Untitled slide.${SLIDE_EXTENSION}`);
-		for (let i = 1; this.app.vault.getAbstractFileByPath(path); i++) {
-			path = normalizePath(`${folder.path}/Untitled slide ${i}.${SLIDE_EXTENSION}`);
-		}
-		const file = await this.app.vault.create(path, serializeSlide(slide));
-		await this.app.workspace.getLeaf(true).openFile(file);
+		let path = normalizePath(`${folder.path}/${baseName}.md`);
+		for (let i = 1; this.app.vault.getAbstractFileByPath(path); i++) path = normalizePath(`${folder.path}/${baseName} ${i}.md`);
+		const file = await this.app.vault.create(path, serializeDeck(deck));
+		await this.openAsDeck(this.app.workspace.getLeaf(true), file);
 	}
 }
 
