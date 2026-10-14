@@ -136,7 +136,7 @@ export class CanvasEngine {
 	/** Re-measures text once fonts have loaded; text measured with a fallback font looks cut off. */
 	refreshText() {
 		const els = this.api.getSceneElements();
-		const fresh = restoreElements(els, null, { refreshDimensions: true });
+		const fresh = restoreElements(els, null, { refreshDimensions: true, repairBindings: true });
 		const changed = fresh.some((e, i) => e.type === "text" && (Math.abs(e.width - els[i].width) > 0.5 || Math.abs(e.height - els[i].height) > 0.5));
 		if (changed) this.api.updateScene({ elements: fresh, captureUpdate: CaptureUpdateAction.NEVER });
 	}
