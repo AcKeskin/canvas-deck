@@ -1,7 +1,7 @@
 import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/data/transform";
-import { createSlide, type SlideData } from "../canvas/slide-data";
-import { newId, type Deck } from "../deck/deck-model";
+import { createSlide, newId, type SlideData } from "../canvas/slide-data";
+import type { Deck } from "../deck/deck-model";
 import { perfSlideSkeletons } from "./perf-slide";
 
 const text = (x: number, y: number, t: string, fontSize: number): ExcalidrawElementSkeleton => ({ type: "text", x, y, text: t, fontSize });

@@ -1,4 +1,4 @@
-import { createSlide, type SlideData } from "../canvas/slide-data";
+import { createSlide, newId, type SlideData } from "../canvas/slide-data";
 
 export interface DeckSlide {
 	id: string;
@@ -12,10 +12,6 @@ export interface Deck {
 	/** Frontmatter lines other than the deck flag, kept as-is. */
 	frontmatter: string[];
 	slides: DeckSlide[];
-}
-
-export function newId(): string {
-	return Math.random().toString(36).slice(2, 10);
 }
 
 export function newSlide(title: string): DeckSlide {

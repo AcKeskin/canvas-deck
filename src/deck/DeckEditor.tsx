@@ -1,9 +1,12 @@
 import { convertToExcalidrawElements, exportToSvg } from "@excalidraw/excalidraw";
+import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type { BinaryFiles, DataURL } from "@excalidraw/excalidraw/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CanvasEngine, ImageStore } from "../canvas/engine";
 import { SlideCanvas } from "../canvas/SlideCanvas";
 import { moveView, removeView, renameView } from "../canvas/camera";
 import type { SlideData } from "../canvas/slide-data";
+import { mimeOf } from "../canvas/vault-images";
 import { Presenter } from "../present/Presenter";
 import { addSlide, deleteSlide, duplicateSlide, moveSlide, updateSlide, type Deck } from "./deck-model";
 
@@ -45,6 +48,12 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 	const edit = (fn: (d: Deck) => Deck) => setDeck(fn);
 	const select = (i: number) => setCurrent(Math.max(0, Math.min(i, deck.slides.length - 1)));
 
+	// Presenter's canvas is gone after exit; point commands back at the editor's.
+	const exitPresent = useCallback(() => {
+		setPresenting(null);
+		if (engine.current) onEngine?.(engine.current);
+	}, [onEngine]);
+
 	const onSlideData = useCallback(
 		(id: string) => (data: SlideData) => setDeck((d) => updateSlide(d, id, { data })),
 		[],
@@ -56,15 +65,16 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 		<div className="canvas-deck-editor">
 			<SlideList
 				deck={deck}
+				images={images}
 				current={current}
 				onSelect={select}
 				onAdd={() => {
 					edit((d) => addSlide(d, current));
-					select(current + 1);
+					setCurrent(current + 1);
 				}}
 				onDuplicate={() => {
 					edit((d) => duplicateSlide(d, current));
-					select(current + 1);
+					setCurrent(current + 1);
 				}}
 				onDelete={() => {
 					edit((d) => deleteSlide(d, current));
@@ -155,7 +165,7 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 					images={images}
 					start={presenting}
 					theme={theme}
-					onExit={() => setPresenting(null)}
+					onExit={exitPresent}
 					onEngine={onEngine}
 				/>
 			)}
@@ -165,6 +175,7 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 
 interface SlideListProps {
 	deck: Deck;
+	images: ImageStore;
 	current: number;
 	onSelect(i: number): void;
 	onAdd(): void;
@@ -174,7 +185,7 @@ interface SlideListProps {
 	onRename(i: number, title: string): void;
 }
 
-function SlideList({ deck, current, onSelect, onAdd, onDuplicate, onDelete, onMove, onRename }: SlideListProps) {
+function SlideList({ deck, images, current, onSelect, onAdd, onDuplicate, onDelete, onMove, onRename }: SlideListProps) {
 	const drag = useRef<number | null>(null);
 	return (
 		<div className="canvas-deck-list">
@@ -196,7 +207,7 @@ function SlideList({ deck, current, onSelect, onAdd, onDuplicate, onDelete, onMo
 							if (t !== null) onRename(i, t);
 						}}
 					>
-						<Thumb data={s.data} />
+						<Thumb data={s.data} images={images} />
 						<div className="canvas-deck-list-label">
 							<span className="num">{i + 1}</span> {s.title || "Untitled"}
 						</div>
@@ -215,7 +226,7 @@ function SlideList({ deck, current, onSelect, onAdd, onDuplicate, onDelete, onMo
 }
 
 /** Small preview of the slide's start frame, redrawn shortly after its content changes. */
-function Thumb({ data }: { data: SlideData }) {
+function Thumb({ data, images }: { data: SlideData; images: ImageStore }) {
 	const ref = useRef<HTMLDivElement>(null);
 	useEffect(() => {
 		const t = window.setTimeout(async () => {
@@ -232,7 +243,7 @@ function Thumb({ data }: { data: SlideData }) {
 			try {
 				const svg = await exportToSvg({
 					elements: [pin, ...inFrame],
-					files: null,
+					files: await loadFiles(inFrame, data, images),
 					appState: { exportBackground: false, exportPadding: 0 } as any,
 					exportPadding: 0,
 				});
@@ -244,6 +255,18 @@ function Thumb({ data }: { data: SlideData }) {
 			}
 		}, 600);
 		return () => window.clearTimeout(t);
-	}, [data]);
+	}, [data, images]);
 	return <div className="canvas-deck-thumb" ref={ref} />;
+}
+
+/** Image bytes for the image elements in `elements`. Missing files are skipped. */
+async function loadFiles(elements: readonly ExcalidrawElement[], data: SlideData, images: ImageStore): Promise<BinaryFiles> {
+	const files: BinaryFiles = {};
+	for (const e of elements) {
+		if (e.type !== "image" || !e.fileId || files[e.fileId]) continue;
+		const path = data.images[e.fileId];
+		const dataURL = path ? await images.load(path) : null;
+		if (dataURL) files[e.fileId] = { id: e.fileId, dataURL: dataURL as DataURL, mimeType: mimeOf(path) as any, created: 0 };
+	}
+	return files;
 }

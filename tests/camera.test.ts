@@ -112,11 +112,6 @@ describe("camera controller", () => {
 		await expect(cam.goToView(slide, "nope")).rejects.toThrow();
 	});
 
-	test("read-only toggles view mode", () => {
-		const host = fakeHost();
-		new CameraController(host, fakeClock()).setReadOnly(true);
-		expect(host.state.viewModeEnabled).toBe(true);
-	});
 });
 
 describe("saved views", () => {

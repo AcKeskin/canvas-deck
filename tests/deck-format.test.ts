@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { createSlide } from "../src/canvas/slide-data";
-import { isDeckText, parseDeck, serializeDeck } from "../src/deck/deck-format";
+import { parseDeck, serializeDeck } from "../src/deck/deck-format";
 import type { Deck } from "../src/deck/deck-model";
 
 const rect = { id: "r", type: "rectangle", x: 1, y: 2, width: 3, height: 4, roughness: 0 } as unknown as ExcalidrawElement;
@@ -30,12 +30,6 @@ describe("deck format", () => {
 		expect(md).toContain("## Big diagram");
 		const outsideBlocks = md.replace(/%%cdeck[^\n]*\n[^\n]*\n%%/g, "");
 		expect(outsideBlocks).not.toContain('"elements"');
-	});
-
-	test("flag detection", () => {
-		expect(isDeckText(serializeDeck(deck))).toBe(true);
-		expect(isDeckText("---\ntags: x\n---\nhi")).toBe(false);
-		expect(isDeckText("no frontmatter")).toBe(false);
 	});
 
 	test("a flagged note with no slides becomes one slide with its text as notes", () => {

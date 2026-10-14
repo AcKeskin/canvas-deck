@@ -158,10 +158,6 @@ export class CameraController {
 	currentBounds(): Bounds {
 		return visibleBounds(this.camera, this.viewport);
 	}
-
-	setReadOnly(readOnly: boolean) {
-		this.host.updateScene({ appState: { viewModeEnabled: readOnly } });
-	}
 }
 
 export function addView(slide: SlideData, view: SavedView): SlideData {
