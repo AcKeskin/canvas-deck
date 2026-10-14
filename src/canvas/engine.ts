@@ -127,9 +127,18 @@ export class CanvasEngine {
 
 	/** Puts a live view of a vault note on the canvas, centered at a scene point (default: view center). */
 	insertNote(path: string, at?: { x: number; y: number }) {
+		this.insertEmbed(formatNoteLink(path), 600, 400, at);
+	}
+
+	/** Puts a live web page on the canvas. The link keeps the URL as typed; the iframe src comes from `webEmbedSrc`. */
+	insertWebEmbed(url: string, at?: { x: number; y: number }) {
+		this.insertEmbed(url.trim(), 800, 450, at);
+	}
+
+	private insertEmbed(link: string, width: number, height: number, at?: { x: number; y: number }) {
 		const c = at ?? this.viewCenter();
-		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - 300, y: c.y - 200, width: 600, height: 400 }]);
-		const el = { ...rect, type: "embeddable", link: formatNoteLink(path), roundness: null } as ExcalidrawElement;
+		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - width / 2, y: c.y - height / 2, width, height }]);
+		const el = { ...rect, type: "embeddable", link, roundness: null } as ExcalidrawElement;
 		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
 	}
 
