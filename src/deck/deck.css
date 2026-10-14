@@ -20,9 +20,9 @@
 .canvas-deck-presenter { position: fixed; inset: 0; z-index: 9999; background: var(--background-primary, #fff); animation: canvas-deck-fade 0.25s ease; }
 .canvas-deck-presenter .canvas-deck-slide { animation: canvas-deck-fade 0.3s ease; }
 @keyframes canvas-deck-fade { from { opacity: 0; } to { opacity: 1; } }
-.canvas-deck-present-bar { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 6px; align-items: center; padding: 4px 8px; border-radius: 8px; background: var(--background-secondary, #f4f4f4); opacity: 0.25; transition: opacity 0.2s; font-size: 13px; }
+.canvas-deck-present-bar { position: absolute; z-index: 10; right: 16px; bottom: 16px; display: flex; gap: 6px; align-items: center; padding: 4px 8px; border-radius: 8px; background: var(--background-secondary, #f4f4f4); opacity: 0.25; transition: opacity 0.2s; font-size: 13px; }
 .canvas-deck-present-bar:hover { opacity: 1; }
-.canvas-deck-present-notes { position: absolute; left: 16px; bottom: 16px; max-width: 40%; max-height: 40%; overflow: auto; white-space: pre-wrap; padding: 12px; border-radius: 8px; background: var(--background-secondary, #f4f4f4); font-size: 14px; }
+.canvas-deck-present-notes { position: absolute; z-index: 10; left: 16px; bottom: 16px; max-width: 40%; max-height: 40%; overflow: auto; white-space: pre-wrap; padding: 12px; border-radius: 8px; background: var(--background-secondary, #f4f4f4); font-size: 14px; }
 @media (max-width: 700px) {
 	.canvas-deck-editor { flex-direction: column; }
 	.canvas-deck-list { width: 100%; flex-direction: row; border-right: 0; border-bottom: 1px solid var(--background-modifier-border, #ddd); }
@@ -30,3 +30,6 @@
 	.canvas-deck-list-item { width: 110px; flex: none; }
 	.canvas-deck-list-actions { flex-direction: column; border-top: 0; }
 }
+.canvas-deck-frame { z-index: 2; }
+.canvas-deck-motion { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; z-index: 1; }
+.canvas-deck-slide.is-moving .excalidraw__canvas { visibility: hidden; }

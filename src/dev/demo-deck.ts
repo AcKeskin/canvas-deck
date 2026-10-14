@@ -50,14 +50,18 @@ export function demoDeck(): Deck {
 				id: newId(),
 				title: "A big diagram",
 				notes: "2,000 objects. Press → to fly through the saved views, or explore freely.",
-				data: slide(
-					[text(0, -200, "A big diagram (2,000 objects)", 120), ...perfSlideSkeletons(2000)],
-					[
-						{ id: newId(), name: "Top left", bounds: { x: -40, y: -40, width: 1600, height: 900 } },
-						{ id: newId(), name: "Middle", bounds: { x: 4000, y: 3000, width: 1600, height: 900 } },
-						{ id: newId(), name: "Everything", bounds: { x: -400, y: -400, width: 10800, height: 7600 } },
-					],
-				),
+				data: {
+					...slide(
+						[text(0, -700, "A big diagram (2,000 objects)", 360), ...perfSlideSkeletons(2000)],
+						[
+							{ id: newId(), name: "Top left", bounds: { x: -40, y: -40, width: 1600, height: 900 } },
+							{ id: newId(), name: "Middle", bounds: { x: 4000, y: 3000, width: 1600, height: 900 } },
+							{ id: newId(), name: "Bottom right", bounds: { x: 8200, y: 6200, width: 1600, height: 900 } },
+						],
+					),
+					// Start on the whole diagram, then zoom in through the views.
+					frame: { x: -2520, y: -1000, width: 14940, height: 8404 },
+				},
 			},
 		],
 	};

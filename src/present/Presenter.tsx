@@ -10,13 +10,14 @@ export interface PresenterProps {
 	start?: number;
 	theme?: "light" | "dark";
 	onExit(): void;
+	onEngine?(engine: CanvasEngine): void;
 }
 
 /**
  * Fullscreen player. Arrows/space step through saved views, then slides.
  * Drag and wheel move freely inside a slide; Home returns to the start frame.
  */
-export function Presenter({ deck, images, start = 0, theme, onExit }: PresenterProps) {
+export function Presenter({ deck, images, start = 0, theme, onExit, onEngine }: PresenterProps) {
 	const root = useRef<HTMLDivElement>(null);
 	const engine = useRef<CanvasEngine | null>(null);
 	const [pos, setPos] = useState<Position>({ slide: start, view: -1 });
@@ -37,8 +38,9 @@ export function Presenter({ deck, images, start = 0, theme, onExit }: PresenterP
 		(e: CanvasEngine) => {
 			engine.current = e;
 			lastSlide.current = pos.slide;
+			onEngine?.(e);
 		},
-		[pos.slide],
+		[pos.slide, onEngine],
 	);
 
 	useEffect(() => {

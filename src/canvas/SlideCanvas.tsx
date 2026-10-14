@@ -19,6 +19,7 @@ export interface SlideCanvasProps {
 export function SlideCanvas({ initial, images, readOnly, presenting, theme, onChange, onReady }: SlideCanvasProps) {
 	readOnly = readOnly || presenting;
 	const engine = useRef<CanvasEngine | null>(null);
+	const host = useRef<HTMLDivElement>(null);
 	const [frameRect, setFrameRect] = useState<Bounds | null>(null);
 
 	const updateFrame = useCallback((scrollX: number, scrollY: number, zoom: number) => {
@@ -31,6 +32,7 @@ export function SlideCanvas({ initial, images, readOnly, presenting, theme, onCh
 			if (engine.current) return;
 			const e = new CanvasEngine(api, images, initial, onChange);
 			engine.current = e;
+			if (host.current) e.enableMotion(host.current, () => theme === "dark");
 			api.onScrollChange((x, y, z) => updateFrame(x, y, z.value));
 			// Excalidraw needs one frame to size itself before the camera can fit.
 			requestAnimationFrame(() => {
@@ -39,11 +41,11 @@ export function SlideCanvas({ initial, images, readOnly, presenting, theme, onCh
 				onReady?.(e);
 			});
 		},
-		[images, initial, onChange, onReady, updateFrame],
+		[images, initial, onChange, onReady, updateFrame, theme],
 	);
 
 	return (
-		<div className={`canvas-deck-slide${presenting ? " is-presenting" : ""}`} style={{ position: "relative", width: "100%", height: "100%" }}>
+		<div ref={host} className={`canvas-deck-slide${presenting ? " is-presenting" : ""}`} style={{ position: "relative", width: "100%", height: "100%" }}>
 			<Excalidraw
 				excalidrawAPI={onApi}
 				initialData={{ elements: initial.elements, scrollToContent: false }}

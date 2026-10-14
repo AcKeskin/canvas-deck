@@ -21,6 +21,14 @@ export interface CameraHost {
 	updateScene(scene: { appState: Record<string, unknown> }): void;
 }
 
+/** Optional faster renderer used only while the camera animates. */
+export interface Motion {
+	/** Returns false when it has nothing to show; the camera then animates the normal way. */
+	begin(): boolean;
+	frame(cam: Camera): void;
+	end(): void;
+}
+
 export interface Clock {
 	now(): number;
 	frame(cb: () => void): void;
@@ -65,6 +73,9 @@ const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 
 
 export class CameraController {
 	private token = 0;
+	motion: Motion | null = null;
+	/** Camera shown by the motion picture mid-animation; Excalidraw's own camera lags behind it. */
+	private moving: Camera | null = null;
 
 	constructor(
 		private host: CameraHost,
@@ -93,22 +104,41 @@ export class CameraController {
 		const { animate = true, duration = 600 } = opts;
 		const token = ++this.token;
 		const vp = this.viewport;
-		const from = this.camera;
+		const from = this.moving ?? this.camera;
 		const to = cameraForBounds(b, vp);
+		this.moving = null;
 		// Excalidraw applies scene updates async, so resolve one frame after the last set.
 		const settle = (resolve: () => void) => this.clock.frame(resolve);
 		if (!animate || duration <= 0) {
+			this.motion?.end();
 			this.set(to);
 			return new Promise(settle);
 		}
 		const start = this.clock.now();
+		const motion = this.motion?.begin() ? this.motion : null;
 		return new Promise((resolve) => {
+			const finish = () => {
+				this.moving = null;
+				this.set(to);
+				// Let Excalidraw draw the final view before removing the picture.
+				this.clock.frame(() =>
+					this.clock.frame(() => {
+						if (token === this.token) motion?.end();
+						resolve();
+					}),
+				);
+			};
 			const step = () => {
 				if (token !== this.token) return resolve();
 				const t = Math.min(1, (this.clock.now() - start) / duration);
-				this.set(lerpCamera(from, to, easeInOut(t), vp), t < 1);
-				if (t >= 1) settle(resolve);
-				else this.clock.frame(step);
+				if (t >= 1) return finish();
+				const cam = lerpCamera(from, to, easeInOut(t), vp);
+				if (motion) {
+					this.moving = cam;
+					motion.frame(cam);
+				}
+				else this.set(cam, true);
+				this.clock.frame(step);
 			};
 			this.clock.frame(step);
 		});

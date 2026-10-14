@@ -150,7 +150,14 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 				/>
 			</div>
 			{presenting !== null && (
-				<Presenter deck={deck} images={images} start={presenting} theme={theme} onExit={() => setPresenting(null)} />
+				<Presenter
+					deck={deck}
+					images={images}
+					start={presenting}
+					theme={theme}
+					onExit={() => setPresenting(null)}
+					onEngine={onEngine}
+				/>
 			)}
 		</div>
 	);

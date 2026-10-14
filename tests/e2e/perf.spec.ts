@@ -58,6 +58,8 @@ async function openPerfSlide(page: Page) {
 	await page.waitForFunction(() => window.harness.engine !== null);
 	expect(await page.evaluate(() => window.harness.engine!.api.getSceneElements().length)).toBeGreaterThanOrEqual(N);
 	await panAndZoom(page, 500); // warm up shape caches
+	// Camera animations use a pre-rendered picture once it's ready (a second or two after load).
+	await page.waitForFunction(() => window.harness.engine!.motionReady, null, { timeout: 30_000 });
 }
 
 for (const cpu of [1, 4]) {
