@@ -10,6 +10,11 @@ import { demoDeck } from "../../src/dev/demo-deck";
 import { DeckEditor, type DeckHandle } from "../../src/deck/DeckEditor";
 import { parseDeck, serializeDeck } from "../../src/deck/deck-format";
 import type { Deck } from "../../src/deck/deck-model";
+import type { PdfOptions } from "../../src/deck/pdf-plan";
+import { renderDeckPdf } from "../../src/deck/pdf-render";
+
+// Fonts come from /fonts here, not the CDN (see vite.config.ts).
+window.EXCALIDRAW_ASSET_PATH = "/";
 
 // 2x1 red PNG.
 const DOT =
@@ -58,10 +63,27 @@ declare global {
 			handle?: DeckHandle;
 			serialize: typeof serializeDeck;
 			parse: typeof parseDeck;
+			/** PDF of the current deck, base64. */
+			pdf(opts: PdfOptions): Promise<string>;
 		};
 	}
 }
-window.harness = { engine: null, files, notes: noteTexts, opened, saves: 0, freeDrawPath: getFreeDrawSvgPath, serialize: serializeDeck, parse: parseDeck };
+window.harness = {
+	engine: null,
+	files,
+	notes: noteTexts,
+	opened,
+	saves: 0,
+	freeDrawPath: getFreeDrawSvgPath,
+	serialize: serializeDeck,
+	parse: parseDeck,
+	pdf: async (opts) => {
+		const bytes = await renderDeckPdf(window.harness.deck!, store, opts);
+		let s = "";
+		for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+		return btoa(s);
+	},
+};
 
 const root = createRoot(document.getElementById("root")!);
 if (params.has("deck")) {
