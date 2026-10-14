@@ -2,6 +2,7 @@ import { convertToExcalidrawElements, getSceneVersion, viewportCoordsToSceneCoor
 import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { addView, CameraController, type CameraHost } from "./camera";
+import { MotionSnapshot } from "./motion-snapshot";
 import type { SlideData } from "./slide-data";
 import { mimeOf, pruneImages, renameImage, unsavedFileIds } from "./vault-images";
 
@@ -18,6 +19,8 @@ export class CanvasEngine {
 	private _slide: SlideData;
 	private sceneVersion = -1;
 	private saving = new Set<string>();
+	private motion: MotionSnapshot | null = null;
+	private prepareTimer = 0;
 
 	constructor(
 		readonly api: ExcalidrawImperativeAPI,
@@ -27,6 +30,24 @@ export class CanvasEngine {
 	) {
 		this._slide = slide;
 		this.camera = new CameraController(api as unknown as CameraHost);
+	}
+
+	/** Turns on smooth camera animation for big slides. `host` wraps the Excalidraw canvas. */
+	enableMotion(host: HTMLElement, dark: () => boolean) {
+		this.motion = new MotionSnapshot(this.api, host, dark);
+		this.camera.motion = this.motion;
+		this.schedulePrepare(300);
+	}
+
+	/** True once big-slide animation can use the pre-rendered picture. */
+	get motionReady(): boolean {
+		return this.motion?.ready ?? false;
+	}
+
+	private schedulePrepare(delay: number) {
+		if (!this.motion) return;
+		window.clearTimeout(this.prepareTimer);
+		this.prepareTimer = window.setTimeout(() => this.motion?.prepare(), delay);
 	}
 
 	get slide(): SlideData {
@@ -50,6 +71,7 @@ export class CanvasEngine {
 		const version = getSceneVersion(elements);
 		if (version === this.sceneVersion) return;
 		this.sceneVersion = version;
+		this.schedulePrepare(1500);
 		this.update(pruneImages({ ...this._slide, elements: elements.filter((e) => !e.isDeleted) }));
 		for (const id of unsavedFileIds(this._slide, Object.keys(files))) this.saveFile(id, files);
 	}

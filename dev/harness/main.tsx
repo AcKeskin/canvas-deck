@@ -1,10 +1,15 @@
 import "@excalidraw/excalidraw/index.css";
+import "../../src/deck/deck.css";
 import { convertToExcalidrawElements, getFreeDrawSvgPath } from "@excalidraw/excalidraw";
 import { createRoot } from "react-dom/client";
 import type { CanvasEngine, ImageStore } from "../../src/canvas/engine";
 import { SlideCanvas } from "../../src/canvas/SlideCanvas";
 import { createSlide, type SlideData } from "../../src/canvas/slide-data";
 import { perfSlideSkeletons } from "../../src/dev/perf-slide";
+import { demoDeck } from "../../src/dev/demo-deck";
+import { DeckEditor, type DeckHandle } from "../../src/deck/DeckEditor";
+import { parseDeck, serializeDeck } from "../../src/deck/deck-format";
+import type { Deck } from "../../src/deck/deck-model";
 
 // 2x1 red PNG.
 const DOT =
@@ -35,16 +40,41 @@ declare global {
 			files: Map<string, string>;
 			saves: number;
 			freeDrawPath: typeof getFreeDrawSvgPath;
+			deck?: Deck;
+			handle?: DeckHandle;
+			serialize: typeof serializeDeck;
+			parse: typeof parseDeck;
 		};
 	}
 }
-window.harness = { engine: null, files, saves: 0, freeDrawPath: getFreeDrawSvgPath };
+window.harness = { engine: null, files, saves: 0, freeDrawPath: getFreeDrawSvgPath, serialize: serializeDeck, parse: parseDeck };
 
-createRoot(document.getElementById("root")!).render(
-	<SlideCanvas
-		initial={initial}
-		images={store}
-		onChange={() => window.harness.saves++}
-		onReady={(e) => (window.harness.engine = e)}
-	/>,
-);
+const root = createRoot(document.getElementById("root")!);
+if (params.has("deck")) {
+	// Full deck editor with the demo deck.
+	// ?deck=stored loads the deck a test put in sessionStorage.
+	const saved = params.get("deck") === "stored" ? sessionStorage.getItem("deck") : null;
+	const deck = saved ? parseDeck(saved) : demoDeck();
+	window.harness.deck = deck;
+	root.render(
+		<DeckEditor
+			initial={deck}
+			images={store}
+			onChange={(d) => {
+				window.harness.deck = d;
+				window.harness.saves++;
+			}}
+			onReady={(h) => (window.harness.handle = h)}
+			onEngine={(e) => (window.harness.engine = e)}
+		/>,
+	);
+} else {
+	root.render(
+		<SlideCanvas
+			initial={initial}
+			images={store}
+			onChange={() => window.harness.saves++}
+			onReady={(e) => (window.harness.engine = e)}
+		/>,
+	);
+}
