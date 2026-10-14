@@ -9,6 +9,7 @@ import { perfSlideSkeletons } from "../../src/dev/perf-slide";
 import { demoDeck } from "../../src/dev/demo-deck";
 import { DeckEditor, type DeckHandle } from "../../src/deck/DeckEditor";
 import { parseDeck, serializeDeck } from "../../src/deck/deck-format";
+import { deckLink } from "../../src/deck/deck-links";
 import type { Deck } from "../../src/deck/deck-model";
 
 // 2x1 red PNG.
@@ -44,10 +45,11 @@ declare global {
 			handle?: DeckHandle;
 			serialize: typeof serializeDeck;
 			parse: typeof parseDeck;
+			deckLink: typeof deckLink;
 		};
 	}
 }
-window.harness = { engine: null, files, saves: 0, freeDrawPath: getFreeDrawSvgPath, serialize: serializeDeck, parse: parseDeck };
+window.harness = { engine: null, files, saves: 0, freeDrawPath: getFreeDrawSvgPath, serialize: serializeDeck, parse: parseDeck, deckLink };
 
 const root = createRoot(document.getElementById("root")!);
 if (params.has("deck")) {

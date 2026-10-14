@@ -8,6 +8,7 @@ import { moveView, removeView, renameView } from "../canvas/camera";
 import type { SlideData } from "../canvas/slide-data";
 import { mimeOf } from "../canvas/vault-images";
 import { Presenter } from "../present/Presenter";
+import { resolveDeckLink } from "./deck-links";
 import { addSlide, deleteSlide, duplicateSlide, moveSlide, updateSlide, type Deck } from "./deck-model";
 
 export interface DeckHandle {
@@ -30,6 +31,8 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 	const [current, setCurrent] = useState(0);
 	const [presenting, setPresenting] = useState<number | null>(null);
 	const engine = useRef<CanvasEngine | null>(null);
+	/** View to fly to once the next slide's canvas is ready. */
+	const pendingView = useRef<string | null>(null);
 	const first = useRef(true);
 	const slide = deck.slides[Math.min(current, deck.slides.length - 1)];
 
@@ -58,6 +61,22 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 		(id: string) => (data: SlideData) => setDeck((d) => updateSlide(d, id, { data })),
 		[],
 	);
+
+	// Following a deck link selects that slide and flies to the view.
+	const followLink = (slideId: string, viewId?: string) => {
+		const p = resolveDeckLink(deck, slideId, viewId);
+		if (!p) return;
+		const target = deck.slides[p.slide];
+		const view = p.view >= 0 ? target.data.views[p.view].id : null;
+		const e = engine.current;
+		if (target.id !== slide.id) {
+			pendingView.current = view;
+			setCurrent(p.slide);
+		} else if (e) {
+			if (view) e.camera.goToView(e.slide, view);
+			else e.camera.goToFrame(e.slide);
+		}
+	};
 
 	const views = slide.data.views;
 
@@ -148,8 +167,11 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 						onChange={onSlideData(slide.id)}
 						onReady={(e) => {
 							engine.current = e;
+							if (pendingView.current) e.camera.goToView(e.slide, pendingView.current, { animate: false });
+							pendingView.current = null;
 							onEngine?.(e);
 						}}
+						onDeckLink={followLink}
 					/>
 				</div>
 				<textarea

@@ -14,7 +14,8 @@ export class DeckView extends TextFileView {
 	handle: DeckHandle | null = null;
 	engine: CanvasEngine | null = null;
 	private root: Root | null = null;
-	private deck: Deck | null = null;
+	/** The deck as last edited. */
+	deck: Deck | null = null;
 	private lastData = "";
 	private images = vaultImageStore(this.app, () => this.file?.path);
 
