@@ -1,7 +1,19 @@
 {
 	"name": "canvas-deck",
 	"version": "0.1.0",
-	"description": "Slide decks where each slide is an infinite canvas.",
+	"private": true,
+	"description": "Obsidian plugin for slide decks where each slide is an infinite canvas.",
+	"author": "Ali Can Keskin (https://github.com/AcKeskin)",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/AcKeskin/canvas-deck.git"
+	},
+	"homepage": "https://github.com/AcKeskin/canvas-deck#readme",
+	"bugs": {
+		"url": "https://github.com/AcKeskin/canvas-deck/issues"
+	},
+	"keywords": ["obsidian", "obsidian-plugin", "excalidraw", "slides", "presentation"],
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
@@ -11,7 +23,6 @@
 		"test:e2e": "playwright test",
 		"harness": "vite"
 	},
-	"license": "MIT",
 	"devDependencies": {
 		"@playwright/test": "^1.64.0",
 		"@types/node": "^26.6.5",
