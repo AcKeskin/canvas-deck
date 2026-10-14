@@ -4,6 +4,8 @@ A fully vibe-coded Obsidian plugin I made for myself, built with [contexture](ht
 
 Canvas Deck makes slide decks in Obsidian where each slide is an infinite canvas. You draw on an Excalidraw canvas, mark a start frame, and save views on it. In present mode the deck steps through the slides and the views. A deck is a normal markdown note, so its titles and speaker notes stay searchable.
 
+![The deck editor: slide list, canvas with the start frame, and speaker notes](docs/screens/editor.png)
+
 ## Features
 
 - Every slide is its own infinite Excalidraw canvas.
@@ -18,6 +20,16 @@ Canvas Deck makes slide decks in Obsidian where each slide is an infinite canvas
 - PDF export: one page per start frame, optionally one per saved view, optionally with speaker notes.
 - Offline fonts: the hand-drawn fonts ship with the plugin.
 - Should work on mobile (touch and pen), but not tested on a real device yet.
+
+## Screenshots
+
+Taken in the browser test harness, so they use plain styles instead of your Obsidian theme.
+
+| Present mode with the pen | Saved views on a 2,000-object slide |
+|---|---|
+| ![Present mode with red pen ink circling the title](docs/screens/present-pen.png) | ![Editor flown to the "Middle" saved view of a big diagram](docs/screens/saved-views.png) |
+| **All slides and views (G)** | **Keys (?)** |
+| ![Grid of slide thumbnails with their saved views](docs/screens/grid.png) | ![Help overlay listing present-mode keys](docs/screens/keys.png) |
 
 ## Install
 
@@ -113,6 +125,8 @@ npm run test:e2e   # run the Playwright tests
 ```
 
 If Playwright's own browser is not installed, set `CHROMIUM_PATH` to a Chromium or Chrome binary.
+
+To update the README screenshots in `docs/screens`, run `SHOTS=1 npx playwright test readme-shots`.
 
 Planning docs written while building it are in `.claude/visions`, `.claude/specs` and `.claude/plans`.
 
