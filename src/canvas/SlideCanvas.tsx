@@ -2,10 +2,12 @@ import { Excalidraw } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI, ExcalidrawProps } from "@excalidraw/excalidraw/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseDeckLink } from "../deck/deck-links";
+import { combineEmbedProps } from "./embed-props";
 import { CanvasEngine, type ImageStore, type NoteRenderer } from "./engine";
 import { FrameHandles } from "./FrameHandles";
 import { noteEmbedProps } from "./NoteEmbed";
 import type { SlideData } from "./slide-data";
+import { webEmbedProps } from "./WebEmbed";
 
 export interface SlideCanvasProps {
 	initial: SlideData;
@@ -33,7 +35,7 @@ export function SlideCanvas({ initial, images, notes, presenting, editing, theme
 	const host = useRef<HTMLDivElement>(null);
 	const down = useRef<{ x: number; y: number } | null>(null);
 	const [cam, setCam] = useState<{ scrollX: number; scrollY: number; zoom: number } | null>(null);
-	const embedProps = useMemo(() => noteEmbedProps(notes), [notes]);
+	const embedProps = useMemo(() => combineEmbedProps(noteEmbedProps(notes), webEmbedProps), [notes]);
 	// Read at render: the parent re-renders after every slide change, frame edits included.
 	const f = engine.current?.slide.frame ?? initial.frame;
 
