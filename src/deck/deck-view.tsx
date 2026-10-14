@@ -1,8 +1,7 @@
-import { Notice, TextFileView, type WorkspaceLeaf } from "obsidian";
+import { Notice, TextFileView } from "obsidian";
 import { createRoot, type Root } from "react-dom/client";
-import { renameImage } from "../canvas/vault-images";
+import { isImagePath, pathFromDragText, renameImage } from "../canvas/vault-images";
 import { vaultImageStore } from "../obsidian/vault-image-store";
-import { isImagePath, pathFromDragText } from "../canvas/vault-images";
 import type { CanvasEngine } from "../canvas/engine";
 import { parseDeck, serializeDeck } from "./deck-format";
 import { DeckEditor, type DeckHandle } from "./DeckEditor";
@@ -18,10 +17,6 @@ export class DeckView extends TextFileView {
 	private deck: Deck | null = null;
 	private lastData = "";
 	private images = vaultImageStore(this.app, () => this.file?.path);
-
-	constructor(leaf: WorkspaceLeaf) {
-		super(leaf);
-	}
 
 	getViewType() {
 		return DECK_VIEW;
@@ -45,7 +40,10 @@ export class DeckView extends TextFileView {
 		try {
 			this.deck = parseDeck(data);
 		} catch (e) {
-			new Notice(`Canvas Deck: ${(e as Error).message}`);
+			// Drop the old deck so a save can't write it over the file.
+			this.deck = null;
+			this.unmount();
+			new Notice(`Canvas Deck: ${(e as Error).message}. Use "Open deck as markdown" to fix it.`);
 			return;
 		}
 		this.lastData = data;
@@ -53,6 +51,7 @@ export class DeckView extends TextFileView {
 	}
 
 	clear() {
+		this.deck = null;
 		this.unmount();
 	}
 

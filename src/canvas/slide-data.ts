@@ -1,7 +1,5 @@
 import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/types";
 
-export type Style = "sketch" | "clean";
-
 export interface Bounds {
 	x: number;
 	y: number;
@@ -29,8 +27,6 @@ export interface SlideData {
 export const FRAME_WIDTH = 1920;
 export const FRAME_HEIGHT = 1080;
 
-const ROUGHNESS: Record<Style, number> = { sketch: 1, clean: 0 };
-
 export function createSlide(): SlideData {
 	return {
 		version: 1,
@@ -41,12 +37,8 @@ export function createSlide(): SlideData {
 	};
 }
 
-export function styleOf(el: ExcalidrawElement): Style {
-	return el.roughness === 0 ? "clean" : "sketch";
-}
-
-export function roughnessFor(style: Style): number {
-	return ROUGHNESS[style];
+export function newId(): string {
+	return Math.random().toString(36).slice(2, 12);
 }
 
 export function serializeSlide(slide: SlideData): string {

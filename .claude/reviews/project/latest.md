@@ -90,3 +90,6 @@ src/main.ts, src/present/stepper.ts (besides F008), src/present/Presenter.tsx (b
 - src/main.ts:6 imports `src/dev/demo-deck` into the shipped plugin. Intended: "New demo deck" is a user command.
 - src/canvas/camera.ts:103-145 `goToBounds` is ~40 lines of nested closures. It is one cancel/settle flow; splitting would scatter the token checks.
 - src/deck/deck-format.ts:8 the block regex looks Windows-unsafe. It isn't: with the `m` flag `$` matches before `\r`, and JSON.parse allows trailing `\r`.
+
+## Resolution (2026-10-14)
+All 11 findings applied. F011 loads image bytes for thumbnails through the ImageStore.

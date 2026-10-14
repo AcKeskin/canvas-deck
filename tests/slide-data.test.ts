@@ -3,9 +3,7 @@ import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/t
 import {
 	createSlide,
 	deserializeSlide,
-	roughnessFor,
 	serializeSlide,
-	styleOf,
 	type SlideData,
 } from "../src/canvas/slide-data";
 
@@ -47,12 +45,5 @@ describe("slide data", () => {
 
 	test("rejects unknown versions", () => {
 		expect(() => deserializeSlide('{"version":2}')).toThrow();
-	});
-
-	test("style maps to roughness", () => {
-		expect(styleOf(el("a", 0))).toBe("clean");
-		expect(styleOf(el("b", 1))).toBe("sketch");
-		expect(roughnessFor("clean")).toBe(0);
-		expect(roughnessFor("sketch")).toBe(1);
 	});
 });

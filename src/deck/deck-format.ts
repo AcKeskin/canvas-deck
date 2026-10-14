@@ -1,16 +1,11 @@
-import { deserializeSlide, serializeSlide } from "../canvas/slide-data";
-import { createDeck, newId, type Deck, type DeckSlide } from "./deck-model";
+import { deserializeSlide, newId, serializeSlide } from "../canvas/slide-data";
+import { createDeck, type Deck, type DeckSlide } from "./deck-model";
 
 /** Frontmatter key that marks a note as a deck. */
 export const DECK_FLAG = "canvas-deck";
 export const FORMAT_VERSION = 1;
 
 const BLOCK = /^%%cdeck ([^\n]*)\n([^\n]*)\n%%[ \t]*$/gm;
-
-export function isDeckText(text: string): boolean {
-	const fm = splitFrontmatter(text).frontmatter;
-	return fm.some((l) => l.startsWith(`${DECK_FLAG}:`));
-}
 
 /**
  * Layout per slide:

@@ -1,13 +1,12 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CanvasEngine, type ImageStore } from "./engine";
 import type { Bounds, SlideData } from "./slide-data";
 
 export interface SlideCanvasProps {
 	initial: SlideData;
 	images: ImageStore;
-	readOnly?: boolean;
 	/** Present mode: read-only, no editor UI, no frame outline. */
 	presenting?: boolean;
 	theme?: "light" | "dark";
@@ -16,8 +15,7 @@ export interface SlideCanvasProps {
 }
 
 /** One slide as an Excalidraw canvas, with the 16:9 start frame drawn on top. */
-export function SlideCanvas({ initial, images, readOnly, presenting, theme, onChange, onReady }: SlideCanvasProps) {
-	readOnly = readOnly || presenting;
+export function SlideCanvas({ initial, images, presenting, theme, onChange, onReady }: SlideCanvasProps) {
 	const engine = useRef<CanvasEngine | null>(null);
 	const host = useRef<HTMLDivElement>(null);
 	const [frameRect, setFrameRect] = useState<Bounds | null>(null);
@@ -26,6 +24,8 @@ export function SlideCanvas({ initial, images, readOnly, presenting, theme, onCh
 		const f = engine.current?.slide.frame ?? initial.frame;
 		setFrameRect({ x: (f.x + scrollX) * zoom, y: (f.y + scrollY) * zoom, width: f.width * zoom, height: f.height * zoom });
 	}, [initial]);
+
+	useEffect(() => () => engine.current?.dispose(), []);
 
 	const onApi = useCallback(
 		(api: ExcalidrawImperativeAPI) => {
@@ -50,11 +50,11 @@ export function SlideCanvas({ initial, images, readOnly, presenting, theme, onCh
 				excalidrawAPI={onApi}
 				initialData={{ elements: initial.elements, scrollToContent: false }}
 				onChange={(els, state, files) => engine.current?.handleChange(els, state, files)}
-				viewModeEnabled={readOnly}
+				viewModeEnabled={presenting}
 				zenModeEnabled={presenting}
 				theme={theme}
 			/>
-			{frameRect && !readOnly && (
+			{frameRect && !presenting && (
 				<div
 					className="canvas-deck-frame"
 					style={{

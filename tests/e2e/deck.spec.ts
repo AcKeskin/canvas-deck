@@ -87,3 +87,20 @@ test("present mode steps through views and slides", async ({ page }) => {
 	await page.keyboard.press("Escape");
 	await expect(page.locator(".canvas-deck-presenter")).toHaveCount(0);
 });
+
+test("adding after the last slide selects the new slide", async ({ page }) => {
+	await page.locator(".canvas-deck-list-item").nth(2).click();
+	await page.getByTitle("Add slide").click();
+	await expect(page.locator(".canvas-deck-list-item").nth(3)).toHaveClass(/is-active/);
+	await expect(page.getByLabel("Slide title")).toHaveValue("Slide 4");
+});
+
+test("after present exits, commands act on the editor canvas", async ({ page }) => {
+	await page.getByText("▶ Present").click();
+	await expect(page.locator(".canvas-deck-presenter")).toBeVisible();
+	await page.waitForTimeout(300);
+	await page.keyboard.press("Escape");
+	await expect(page.locator(".canvas-deck-presenter")).toHaveCount(0);
+	await page.evaluate(() => window.harness.engine!.saveCurrentView("After present"));
+	await page.waitForFunction(() => window.harness.deck!.slides[0].data.views.length === 1);
+});
