@@ -2,14 +2,20 @@ import "@excalidraw/excalidraw/index.css";
 import "../../src/deck/deck.css";
 import { convertToExcalidrawElements, getFreeDrawSvgPath } from "@excalidraw/excalidraw";
 import { createRoot } from "react-dom/client";
-import type { CanvasEngine, ImageStore } from "../../src/canvas/engine";
+import type { CanvasEngine, ImageStore, NoteRenderer } from "../../src/canvas/engine";
 import { SlideCanvas } from "../../src/canvas/SlideCanvas";
 import { createSlide, type SlideData } from "../../src/canvas/slide-data";
 import { perfSlideSkeletons } from "../../src/dev/perf-slide";
 import { demoDeck } from "../../src/dev/demo-deck";
 import { DeckEditor, type DeckHandle } from "../../src/deck/DeckEditor";
 import { parseDeck, serializeDeck } from "../../src/deck/deck-format";
+import { deckLink } from "../../src/deck/deck-links";
 import type { Deck } from "../../src/deck/deck-model";
+import type { PdfOptions } from "../../src/deck/pdf-plan";
+import { renderDeckPdf } from "../../src/deck/pdf-render";
+
+// Fonts come from /fonts here, not the CDN (see vite.config.ts).
+window.EXCALIDRAW_ASSET_PATH = "/";
 
 // 2x1 red PNG.
 const DOT =
@@ -26,6 +32,18 @@ const store: ImageStore = {
 	},
 };
 
+/** Fake notes: plain text instead of rendered markdown. */
+const noteTexts = new Map<string, string>([["notes/hello.md", "Hello from a note"]]);
+const opened: string[] = [];
+const notes: NoteRenderer = {
+	render(path, el) {
+		el.style.whiteSpace = "pre-wrap";
+		el.textContent = noteTexts.get(path) ?? `Note not found: ${path}`;
+		return () => {};
+	},
+	open: (path) => opened.push(path),
+};
+
 const params = new URLSearchParams(location.search);
 const perf = Number(params.get("perf") ?? 0);
 const initial: SlideData = {
@@ -38,16 +56,37 @@ declare global {
 		harness: {
 			engine: CanvasEngine | null;
 			files: Map<string, string>;
+			notes: Map<string, string>;
+			opened: string[];
 			saves: number;
 			freeDrawPath: typeof getFreeDrawSvgPath;
 			deck?: Deck;
 			handle?: DeckHandle;
 			serialize: typeof serializeDeck;
 			parse: typeof parseDeck;
+			/** PDF of the current deck, base64. */
+			pdf(opts: PdfOptions): Promise<string>;
+			deckLink: typeof deckLink;
 		};
 	}
 }
-window.harness = { engine: null, files, saves: 0, freeDrawPath: getFreeDrawSvgPath, serialize: serializeDeck, parse: parseDeck };
+window.harness = {
+	engine: null,
+	files,
+	notes: noteTexts,
+	opened,
+	saves: 0,
+	freeDrawPath: getFreeDrawSvgPath,
+	serialize: serializeDeck,
+	parse: parseDeck,
+	deckLink,
+	pdf: async (opts) => {
+		const bytes = await renderDeckPdf(window.harness.deck!, store, opts);
+		let s = "";
+		for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+		return btoa(s);
+	},
+};
 
 const root = createRoot(document.getElementById("root")!);
 if (params.has("deck")) {
@@ -60,6 +99,7 @@ if (params.has("deck")) {
 		<DeckEditor
 			initial={deck}
 			images={store}
+			notes={notes}
 			onChange={(d) => {
 				window.harness.deck = d;
 				window.harness.saves++;
@@ -73,6 +113,7 @@ if (params.has("deck")) {
 		<SlideCanvas
 			initial={initial}
 			images={store}
+			notes={notes}
 			onChange={() => window.harness.saves++}
 			onReady={(e) => (window.harness.engine = e)}
 		/>,
