@@ -2,7 +2,7 @@ import { convertToExcalidrawElements, exportToCanvas } from "@excalidraw/excalid
 import type { ExcalidrawFrameElement } from "@excalidraw/excalidraw/element/types";
 import type { BinaryFiles, DataURL } from "@excalidraw/excalidraw/types";
 import type { ImageStore } from "../canvas/engine";
-import type { SlideData } from "../canvas/slide-data";
+import type { Bounds, SlideData } from "../canvas/slide-data";
 import { mimeOf } from "../canvas/vault-images";
 import type { Deck } from "./deck-model";
 import { pictureSize, planPages, wrapText, type PdfOptions, type PdfPage } from "./pdf-plan";
@@ -19,13 +19,13 @@ export async function renderDeckPdf(deck: Deck, images: ImageStore, opts: PdfOpt
 	return buildPdf(pages);
 }
 
-async function renderPage(data: SlideData, page: PdfPage, files: BinaryFiles): Promise<PdfImagePage> {
-	const b = page.bounds;
+/** Draws the scene area `b` at `pictureSize(b)`, on white. */
+export async function renderPicture(data: SlideData, b: Bounds, files: BinaryFiles): Promise<HTMLCanvasElement> {
 	const size = pictureSize(b);
 	// An invisible frame pins the export to the page bounds. Excalidraw cuts off what lies outside it.
 	const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: b.x, y: b.y, width: b.width, height: b.height }]);
 	const frame = { ...rect, type: "frame", name: null } as unknown as ExcalidrawFrameElement;
-	const picture = await exportToCanvas({
+	return exportToCanvas({
 		// Export with a frame drops elements of other frames; keep them.
 		elements: data.elements.map((e) => (e.frameId ? { ...e, frameId: null } : e)),
 		files,
@@ -33,6 +33,11 @@ async function renderPage(data: SlideData, page: PdfPage, files: BinaryFiles): P
 		exportingFrame: frame,
 		getDimensions: (w: number) => ({ width: size.width, height: size.height, scale: size.width / w }),
 	});
+}
+
+async function renderPage(data: SlideData, page: PdfPage, files: BinaryFiles): Promise<PdfImagePage> {
+	const size = pictureSize(page.bounds);
+	const picture = await renderPicture(data, page.bounds, files);
 
 	// Notes go under the picture, drawn into the same image.
 	const fontSize = Math.round(size.width / 48);
@@ -62,7 +67,7 @@ async function renderPage(data: SlideData, page: PdfPage, files: BinaryFiles): P
 }
 
 /** Image bytes for the slide's images. Missing files are skipped. */
-async function loadFiles(data: SlideData, images: ImageStore, cache: Map<string, string | null>): Promise<BinaryFiles> {
+export async function loadFiles(data: SlideData, images: ImageStore, cache: Map<string, string | null>): Promise<BinaryFiles> {
 	const files: BinaryFiles = {};
 	for (const [id, path] of Object.entries(data.images)) {
 		if (!cache.has(path)) cache.set(path, await images.load(path));

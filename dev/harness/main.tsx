@@ -13,6 +13,8 @@ import { deckLink } from "../../src/deck/deck-links";
 import type { Deck } from "../../src/deck/deck-model";
 import type { PdfOptions } from "../../src/deck/pdf-plan";
 import { renderDeckPdf } from "../../src/deck/pdf-render";
+import { escapeHtml } from "../../src/deck/html-page";
+import { renderDeckHtml } from "../../src/deck/html-render";
 
 // Fonts come from /fonts here, not the CDN (see vite.config.ts).
 window.EXCALIDRAW_ASSET_PATH = "/";
@@ -66,6 +68,8 @@ declare global {
 			parse: typeof parseDeck;
 			/** PDF of the current deck, base64. */
 			pdf(opts: PdfOptions): Promise<string>;
+			/** HTML export of the current deck. */
+			html(): Promise<string>;
 			deckLink: typeof deckLink;
 		};
 	}
@@ -86,6 +90,8 @@ window.harness = {
 		for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
 		return btoa(s);
 	},
+	html: () =>
+		renderDeckHtml("Demo deck", window.harness.deck!, store, async (path) => `<p>${escapeHtml(noteTexts.get(path) ?? `Note not found: ${path}`)}</p>`),
 };
 
 const root = createRoot(document.getElementById("root")!);

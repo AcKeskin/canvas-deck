@@ -18,6 +18,7 @@ Canvas Deck makes slide decks in Obsidian where each slide is an infinite canvas
 - Vault images: insert images from the vault. Renames are followed.
 - Templates: save a slide as a template and start new slides from it.
 - PDF export: one page per start frame, optionally one per saved view, optionally with speaker notes.
+- HTML export: one file that presents the deck in any browser, with speaker notes and live embeds.
 - Offline fonts: the hand-drawn fonts ship with the plugin.
 - Should work on mobile (touch and pen), but not tested on a real device yet.
 
@@ -67,6 +68,7 @@ Run **New deck** from the command palette or click the ribbon icon. **New demo d
 | Save slide as template | Save the current slide to the template folder |
 | New slide from template | Add a slide from a template |
 | Export deck to PDF | Save `<deck>.pdf` next to the note |
+| Export deck to HTML | Save `<deck>.html` next to the note |
 | Open deck as markdown | Show the raw note |
 | Open note as deck | Go back to the deck view |
 
@@ -87,6 +89,10 @@ Run **New deck** from the command palette or click the ribbon icon. **New demo d
 | Esc | Close the grid or tool first, then exit |
 
 Drag and scroll to move freely while presenting.
+
+### HTML export
+
+`<deck>.html` steps through the same start frames and views. Keys: → Space Enter PageDown next, ← Backspace PageUp back, Home start frame, N notes, F full screen. A click or tap on the right or left half also steps. Each page is a picture, so there is no free pan or zoom. Note embeds (as they were at export), code cards and web pages show on top of it. Web pages need the network. After a click inside an embed, click the slide once so the keys work again.
 
 ## How decks are stored
 
