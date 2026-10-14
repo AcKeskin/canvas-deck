@@ -3,7 +3,7 @@ import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/t
 import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { addView, CameraController, type CameraHost } from "./camera";
 import { MotionSnapshot } from "./motion-snapshot";
-import { newId, type SlideData } from "./slide-data";
+import { newId, type Bounds, type SlideData } from "./slide-data";
 import { mimeOf, pruneImages, unsavedFileIds } from "./vault-images";
 
 /** Where image bytes live. Obsidian vault in the app, a fake in tests. */
@@ -120,6 +120,10 @@ export class CanvasEngine {
 
 	setViews(views: SlideData["views"]) {
 		this.update({ ...this._slide, views });
+	}
+
+	setFrame(frame: Bounds) {
+		this.update({ ...this._slide, frame });
 	}
 
 	private viewCenter() {

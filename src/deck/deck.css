@@ -33,3 +33,16 @@
 .canvas-deck-frame { z-index: 2; }
 .canvas-deck-motion { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; z-index: 1; }
 .canvas-deck-slide.is-moving .excalidraw__canvas { visibility: hidden; }
+.canvas-deck-frame.is-editing { box-sizing: border-box; border: 2px solid var(--interactive-accent, #6965db); background: rgba(105, 101, 219, 0.06); cursor: move; touch-action: none; }
+.canvas-deck-frame-handle { position: absolute; box-sizing: border-box; width: 16px; height: 16px; margin: -8px; border: 2px solid var(--interactive-accent, #6965db); border-radius: 3px; background: var(--background-primary, #fff); touch-action: none; }
+.canvas-deck-frame-handle.is-nw { left: 0; top: 0; cursor: nwse-resize; }
+.canvas-deck-frame-handle.is-ne { right: 0; top: 0; cursor: nesw-resize; }
+.canvas-deck-frame-handle.is-sw { left: 0; bottom: 0; cursor: nesw-resize; }
+.canvas-deck-frame-handle.is-se { right: 0; bottom: 0; cursor: nwse-resize; }
+@media (pointer: coarse) { .canvas-deck-frame-handle { width: 26px; height: 26px; margin: -13px; } }
+.canvas-deck-notes-box { flex: none; display: flex; flex-direction: column; border-top: 1px solid var(--background-modifier-border, #ddd); }
+.canvas-deck-notes-box .canvas-deck-notes { border-top: 0; }
+.canvas-deck-notes-label { font-size: 11px; color: var(--text-muted, #888); padding: 4px 8px 0; }
+.canvas-deck-view-chip.is-active > button:first-child { outline: 2px solid var(--interactive-accent, #6965db); }
+/* Keeps the frame overlay from spilling over the toolbar and notes. */
+.canvas-deck-slide { overflow: hidden; }

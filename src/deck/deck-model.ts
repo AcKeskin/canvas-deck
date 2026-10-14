@@ -37,6 +37,16 @@ export function duplicateSlide(deck: Deck, index: number): Deck {
 	return { ...deck, slides };
 }
 
+/** Inserts a copy of `slide` (new ids) after `afterIndex`. Used for templates. */
+export function insertSlide(deck: Deck, slide: DeckSlide, afterIndex: number): Deck {
+	const copy = structuredClone(slide);
+	copy.id = newId();
+	copy.data.views = copy.data.views.map((v) => ({ ...v, id: newId() }));
+	const slides = [...deck.slides];
+	slides.splice(afterIndex + 1, 0, copy);
+	return { ...deck, slides };
+}
+
 /** Never removes the last slide. */
 export function deleteSlide(deck: Deck, index: number): Deck {
 	if (deck.slides.length <= 1) return deck;

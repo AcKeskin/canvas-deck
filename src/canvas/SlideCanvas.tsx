@@ -2,7 +2,8 @@ import { Excalidraw } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CanvasEngine, type ImageStore } from "./engine";
-import type { Bounds, SlideData } from "./slide-data";
+import { FrameHandles } from "./FrameHandles";
+import type { SlideData } from "./slide-data";
 
 export interface SlideCanvasProps {
 	initial: SlideData;
@@ -10,20 +11,23 @@ export interface SlideCanvasProps {
 	/** Present mode: read-only, no editor UI, no frame outline. */
 	presenting?: boolean;
 	theme?: "light" | "dark";
+	/** Show handles to move and resize the start frame. */
+	editFrame?: boolean;
+	/** Resize keeps the frame's aspect. */
+	keepAspect?: boolean;
 	onChange(slide: SlideData): void;
 	onReady?(engine: CanvasEngine): void;
 }
 
-/** One slide as an Excalidraw canvas, with the 16:9 start frame drawn on top. */
-export function SlideCanvas({ initial, images, presenting, theme, onChange, onReady }: SlideCanvasProps) {
+/** One slide as an Excalidraw canvas, with the start frame drawn on top. */
+export function SlideCanvas({ initial, images, presenting, theme, editFrame, keepAspect, onChange, onReady }: SlideCanvasProps) {
 	const engine = useRef<CanvasEngine | null>(null);
 	const host = useRef<HTMLDivElement>(null);
-	const [frameRect, setFrameRect] = useState<Bounds | null>(null);
+	const [cam, setCam] = useState<{ scrollX: number; scrollY: number; zoom: number } | null>(null);
+	// Read at render: the parent re-renders after every slide change, frame edits included.
+	const f = engine.current?.slide.frame ?? initial.frame;
 
-	const updateFrame = useCallback((scrollX: number, scrollY: number, zoom: number) => {
-		const f = engine.current?.slide.frame ?? initial.frame;
-		setFrameRect({ x: (f.x + scrollX) * zoom, y: (f.y + scrollY) * zoom, width: f.width * zoom, height: f.height * zoom });
-	}, [initial]);
+	const updateFrame = useCallback((scrollX: number, scrollY: number, zoom: number) => setCam({ scrollX, scrollY, zoom }), []);
 
 	useEffect(() => () => engine.current?.dispose(), []);
 
@@ -54,15 +58,18 @@ export function SlideCanvas({ initial, images, presenting, theme, onChange, onRe
 				zenModeEnabled={presenting}
 				theme={theme}
 			/>
-			{frameRect && !presenting && (
+			{cam && !presenting && editFrame && (
+				<FrameHandles frame={f} {...cam} keepAspect={!!keepAspect} onCommit={(b) => engine.current?.setFrame(b)} />
+			)}
+			{cam && !presenting && !editFrame && (
 				<div
 					className="canvas-deck-frame"
 					style={{
 						position: "absolute",
-						left: frameRect.x,
-						top: frameRect.y,
-						width: frameRect.width,
-						height: frameRect.height,
+						left: (f.x + cam.scrollX) * cam.zoom,
+						top: (f.y + cam.scrollY) * cam.zoom,
+						width: f.width * cam.zoom,
+						height: f.height * cam.zoom,
 						border: "2px dashed var(--interactive-accent, #6965db)",
 						pointerEvents: "none",
 						boxSizing: "border-box",

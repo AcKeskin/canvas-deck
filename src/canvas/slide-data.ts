@@ -11,11 +11,13 @@ export interface SavedView {
 	id: string;
 	name: string;
 	bounds: Bounds;
+	/** Speaker notes for this step. */
+	notes?: string;
 }
 
 export interface SlideData {
 	version: 1;
-	/** 16:9 start frame: what the audience sees first. */
+	/** Start frame: what the audience sees first. 16:9 by default. */
 	frame: Bounds;
 	/** Ordered camera targets to step through. */
 	views: SavedView[];
@@ -52,10 +54,16 @@ export function deserializeSlide(text: string): SlideData {
 	return {
 		version: 1,
 		frame: isBounds(raw.frame) ? raw.frame : base.frame,
-		views: Array.isArray(raw.views) ? raw.views.filter((v) => v && isBounds(v.bounds)) : [],
+		views: Array.isArray(raw.views) ? raw.views.filter((v) => v && isBounds(v.bounds)).map(cleanView) : [],
 		elements: Array.isArray(raw.elements) ? raw.elements : [],
 		images: raw.images && typeof raw.images === "object" ? raw.images : {},
 	};
+}
+
+function cleanView(v: SavedView): SavedView {
+	if (v.notes === undefined || typeof v.notes === "string") return v;
+	const { notes: _, ...rest } = v;
+	return rest;
 }
 
 function isBounds(b: unknown): b is Bounds {

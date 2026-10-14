@@ -10,10 +10,12 @@ Planning docs: `.claude/visions`, `.claude/specs`, `.claude/plans`.
 
 - **New deck** or **New demo deck** (command palette, or the ribbon icon) creates a deck note.
 - Left: slides. Click to open, double-click to rename, drag or ↑/↓ to reorder.
-- Middle: the canvas. The dashed box is the 16:9 start frame. Draw anywhere past it.
+- Middle: the canvas. The dashed box is the start frame. Draw anywhere past it.
+- Top: the aspect menu sets the frame to 16:9, 4:3, 1:1, 9:16 or Free. **Edit frame** lets you drag the frame to move it and drag a corner to resize it.
 - Top: **+ Save view** saves what you see as a step. Click a view to fly to it.
-- Bottom: speaker notes. They are plain text in the note, so search finds them.
-- **▶ Present**: → / Space next, ← back, Home start frame, N notes, Esc exit. Drag and scroll to move freely.
+- Bottom: speaker notes. They are plain text in the note, so search finds them. After clicking a view, the box edits that view's notes instead; click **Frame** to go back to the slide notes.
+- **Save slide as template** and **New slide from template** (command palette) keep slides in a template folder, set in the plugin settings.
+- **▶ Present**: → / Space next, ← back, Home start frame, N notes (the current view's notes if it has some), Esc exit. Drag and scroll to move freely.
 - A deck is a markdown note with `canvas-deck` frontmatter. **Open deck as markdown** shows the raw note.
 
 ## Dev

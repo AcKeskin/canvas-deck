@@ -5,13 +5,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CanvasEngine, ImageStore } from "../canvas/engine";
 import { SlideCanvas } from "../canvas/SlideCanvas";
 import { moveView, removeView, renameView } from "../canvas/camera";
+import { aspectOf, FRAME_ASPECTS, frameWithAspect, type FrameAspect } from "../canvas/frame";
 import type { SlideData } from "../canvas/slide-data";
 import { mimeOf } from "../canvas/vault-images";
 import { Presenter } from "../present/Presenter";
-import { addSlide, deleteSlide, duplicateSlide, moveSlide, updateSlide, type Deck } from "./deck-model";
+import { addSlide, deleteSlide, duplicateSlide, insertSlide, moveSlide, updateSlide, type Deck, type DeckSlide } from "./deck-model";
 
 export interface DeckHandle {
 	present(from?: number): void;
+	currentSlide(): DeckSlide;
+	/** Inserts a copy of the slide after the current one and opens it. */
+	insertSlide(slide: DeckSlide): void;
 }
 
 export interface DeckEditorProps {
@@ -29,8 +33,15 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 	const [deck, setDeck] = useState(initial);
 	const [current, setCurrent] = useState(0);
 	const [presenting, setPresenting] = useState<number | null>(null);
+	const [editFrame, setEditFrame] = useState(false);
+	// Slide whose frame the user set to free; other frames show their named aspect.
+	const [freeSlide, setFreeSlide] = useState<string | null>(null);
+	// The view chip clicked last; its notes show in the notes box.
+	const [activeView, setActiveView] = useState<{ slide: string; view: string } | null>(null);
 	const engine = useRef<CanvasEngine | null>(null);
 	const first = useRef(true);
+	const deckRef = useRef(deck);
+	deckRef.current = deck;
 	const slide = deck.slides[Math.min(current, deck.slides.length - 1)];
 
 	useEffect(() => {
@@ -42,7 +53,14 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 	}, [deck]);
 
 	useEffect(() => {
-		onReady?.({ present: (from) => setPresenting(from ?? current) });
+		onReady?.({
+			present: (from) => setPresenting(from ?? current),
+			currentSlide: () => deckRef.current.slides[Math.min(current, deckRef.current.slides.length - 1)],
+			insertSlide: (s) => {
+				setDeck((d) => insertSlide(d, s, current));
+				setCurrent(current + 1);
+			},
+		});
 	}, [current, onReady]);
 
 	const edit = (fn: (d: Deck) => Deck) => setDeck(fn);
@@ -60,6 +78,16 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 	);
 
 	const views = slide.data.views;
+	const view = activeView?.slide === slide.id ? views.find((v) => v.id === activeView.view) : undefined;
+	const aspect: FrameAspect = freeSlide === slide.id ? "free" : aspectOf(slide.data.frame);
+
+	const setAspect = (a: FrameAspect) => {
+		setFreeSlide(a === "free" ? slide.id : null);
+		const e = engine.current;
+		if (!e || a === "free") return;
+		e.setFrame(frameWithAspect(e.slide.frame, a));
+		e.camera.goToFrame(e.slide);
+	};
 
 	return (
 		<div className="canvas-deck-editor">
@@ -95,13 +123,22 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 						onChange={(e) => edit((d) => updateSlide(d, slide.id, { title: e.target.value }))}
 					/>
 					<div className="canvas-deck-views" aria-label="Saved views">
-						<button onClick={() => engine.current?.camera.goToFrame(slide.data)} title="Back to the start frame">
+						<button
+							onClick={() => {
+								setActiveView(null);
+								engine.current?.camera.goToFrame(slide.data);
+							}}
+							title="Back to the start frame"
+						>
 							Frame
 						</button>
 						{views.map((v, i) => (
-							<span key={v.id} className="canvas-deck-view-chip">
+							<span key={v.id} className={`canvas-deck-view-chip${v === view ? " is-active" : ""}`}>
 								<button
-									onClick={() => engine.current?.camera.goToView(engine.current.slide, v.id)}
+									onClick={() => {
+										setActiveView({ slide: slide.id, view: v.id });
+										engine.current?.camera.goToView(engine.current.slide, v.id);
+									}}
 									onDoubleClick={() => {
 										const name = window.prompt("View name", v.name);
 										if (name) engine.current?.setViews(renameView(engine.current.slide, v.id, name).views);
@@ -135,6 +172,34 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 							+ Save view
 						</button>
 					</div>
+					<select
+						aria-label="Frame aspect"
+						title="Start frame aspect"
+						value={aspect}
+						onChange={(e) => setAspect(e.target.value as FrameAspect)}
+					>
+						{FRAME_ASPECTS.map((a) => (
+							<option key={a} value={a}>
+								{a === "free" ? "Free" : a}
+							</option>
+						))}
+					</select>
+					<button
+						className={editFrame ? "is-active" : ""}
+						aria-pressed={editFrame}
+						onClick={() => {
+							setEditFrame(!editFrame);
+							// Zoom out a little so the corner handles are on screen.
+							const e = engine.current;
+							if (!editFrame && e) {
+								const f = e.slide.frame;
+								e.camera.goToBounds({ x: f.x - f.width * 0.1, y: f.y - f.height * 0.1, width: f.width * 1.2, height: f.height * 1.2 });
+							}
+						}}
+						title="Move and resize the start frame"
+					>
+						Edit frame
+					</button>
 					<button className="mod-cta canvas-deck-present-btn" onClick={() => setPresenting(current)}>
 						▶ Present
 					</button>
@@ -145,6 +210,8 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 						initial={slide.data}
 						images={images}
 						theme={theme}
+						editFrame={editFrame}
+						keepAspect={aspect !== "free"}
 						onChange={onSlideData(slide.id)}
 						onReady={(e) => {
 							engine.current = e;
@@ -152,12 +219,20 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 						}}
 					/>
 				</div>
-				<textarea
-					className="canvas-deck-notes"
-					placeholder="Speaker notes"
-					value={slide.notes}
-					onChange={(e) => edit((d) => updateSlide(d, slide.id, { notes: e.target.value }))}
-				/>
+				<div className="canvas-deck-notes-box">
+					<div className="canvas-deck-notes-label">{view ? `Notes — view: ${view.name}` : "Notes — slide"}</div>
+					<textarea
+						className="canvas-deck-notes"
+						placeholder={view ? "Notes for this view (shown in present mode at this step)" : "Speaker notes"}
+						value={view ? (view.notes ?? "") : slide.notes}
+						onChange={(e) => {
+							const notes = e.target.value;
+							const en = engine.current;
+							if (view && en) en.setViews(en.slide.views.map((v) => (v.id === view.id ? { ...v, notes } : v)));
+							else edit((d) => updateSlide(d, slide.id, { notes }));
+						}}
+					/>
+				</div>
 			</div>
 			{presenting !== null && (
 				<Presenter

@@ -14,7 +14,7 @@ const deck: Deck = {
 			id: "b",
 			title: "Big diagram",
 			notes: "",
-			data: { ...createSlide(), views: [{ id: "v", name: "Zoom A", bounds: { x: 0, y: 0, width: 10, height: 10 } }] },
+			data: { ...createSlide(), views: [{ id: "v", name: "Zoom A", bounds: { x: 0, y: 0, width: 10, height: 10 }, notes: "Point at A.\nThen B." }] },
 		},
 	],
 };
@@ -30,6 +30,10 @@ describe("deck format", () => {
 		expect(md).toContain("## Big diagram");
 		const outsideBlocks = md.replace(/%%cdeck[^\n]*\n[^\n]*\n%%/g, "");
 		expect(outsideBlocks).not.toContain('"elements"');
+	});
+
+	test("view notes round-trip", () => {
+		expect(parseDeck(serializeDeck(deck)).slides[1].data.views[0].notes).toBe("Point at A.\nThen B.");
 	});
 
 	test("a flagged note with no slides becomes one slide with its text as notes", () => {

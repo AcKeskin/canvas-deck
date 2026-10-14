@@ -14,7 +14,7 @@ function sample(): SlideData {
 	return {
 		...createSlide(),
 		views: [
-			{ id: "a", name: "Part A", bounds: { x: 0, y: 0, width: 400, height: 225 } },
+			{ id: "a", name: "Part A", bounds: { x: 0, y: 0, width: 400, height: 225 }, notes: "Look here." },
 			{ id: "b", name: "Part B", bounds: { x: 3000, y: -500, width: 800, height: 450 } },
 		],
 		elements: [el("r1", 1), el("r2", 0)],
@@ -41,6 +41,11 @@ describe("slide data", () => {
 	test("drops views with bad bounds", () => {
 		const slide = deserializeSlide('{"version":1,"views":[{"id":"x","name":"x","bounds":{"x":"0"}}]}');
 		expect(slide.views).toEqual([]);
+	});
+
+	test("drops view notes that are not text", () => {
+		const slide = deserializeSlide('{"version":1,"views":[{"id":"x","name":"x","bounds":{"x":0,"y":0,"width":1,"height":1},"notes":5}]}');
+		expect(slide.views[0]).toEqual({ id: "x", name: "x", bounds: { x: 0, y: 0, width: 1, height: 1 } });
 	});
 
 	test("rejects unknown versions", () => {

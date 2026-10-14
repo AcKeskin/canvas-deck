@@ -24,6 +24,8 @@ export function Presenter({ deck, images, start = 0, theme, onExit, onEngine }: 
 	const [showNotes, setShowNotes] = useState(false);
 	const shape = deck.slides.map((s) => s.data.views.length);
 	const slide = deck.slides[pos.slide];
+	// The current view's notes if it has any, else the slide's.
+	const notes = (pos.view >= 0 && slide.data.views[pos.view]?.notes) || slide.notes;
 
 	// Moves the camera when the position changes inside the same slide.
 	const lastSlide = useRef(pos.slide);
@@ -88,7 +90,7 @@ export function Presenter({ deck, images, start = 0, theme, onExit, onEngine }: 
 				onChange={() => {}}
 				onReady={onReady}
 			/>
-			{showNotes && slide.notes && <div className="canvas-deck-present-notes">{slide.notes}</div>}
+			{showNotes && notes && <div className="canvas-deck-present-notes">{notes}</div>}
 			<div className="canvas-deck-present-bar">
 				<button aria-label="Previous" onClick={() => setPos((p) => prev(p, shape))}>‹</button>
 				<span>
