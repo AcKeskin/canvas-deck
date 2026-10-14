@@ -150,6 +150,8 @@ Planning docs written while building it are in `.claude/visions`, `.claude/specs
 3. Pan, zoom, and present through the saved views.
 4. For mobile, run `app.emulateMobile(true)` in the console and repeat.
 
+To release, bump `version` in `manifest.json`, `package.json` and `versions.json`, and merge to main. The Release workflow creates the GitHub release for that version.
+
 ## Known limits
 
 - Not in the community plugin store yet.

@@ -1,0 +1,31 @@
+name: Release
+
+# Releases when manifest.json has a version with no release yet. Other merges do nothing.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          v=$(jq -r .version manifest.json)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          gh release view "$v" > /dev/null 2>&1 && echo "exists=true" >> "$GITHUB_OUTPUT" || true
+      - if: steps.v.outputs.exists != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.v.outputs.exists != 'true'
+        run: npm ci && npm run build && npm test
+      - if: steps.v.outputs.exists != 'true'
+        run: gh release create "${{ steps.v.outputs.version }}" main.js styles.css manifest.json --target "$GITHUB_SHA" --title "${{ steps.v.outputs.version }}" --generate-notes
