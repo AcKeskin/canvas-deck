@@ -1,6 +1,8 @@
-import { FuzzySuggestModal, MarkdownView, Notice, normalizePath, Plugin, TFile, type App, type WorkspaceLeaf } from "obsidian";
+import { FuzzySuggestModal, MarkdownView, Modal, Notice, normalizePath, Plugin, Setting, TFile, type App, type WorkspaceLeaf } from "obsidian";
+import { STARTER_CODE } from "./canvas/code-cards";
 import { isNotePath } from "./canvas/note-links";
 import { isImagePath } from "./canvas/vault-images";
+import { isWebLink } from "./canvas/web-embeds";
 import { DECK_FLAG, parseDeck, serializeDeck } from "./deck/deck-format";
 import { linkTargets, type LinkTarget } from "./deck/deck-links";
 import { createDeck, type Deck } from "./deck/deck-model";
@@ -39,6 +41,24 @@ export default class CanvasDeckPlugin extends Plugin {
 		this.deckCommand("insert-note", "Insert note", (v) => {
 			const files = this.app.vault.getMarkdownFiles().filter((f) => f !== v.file);
 			new FilePicker(this.app, "Pick a note", files, (f) => v.engine?.insertNote(f.path)).open();
+		});
+		this.deckCommand("insert-code-card", "Insert code card", (v) => v.engine?.insertCodeCard(STARTER_CODE));
+		this.deckCommand("edit-code-card", "Edit code card", (v) => {
+			if (!v.engine?.selectedCodeCard()) {
+				new Notice("Select a code card first.");
+				return;
+			}
+			v.engine.editCode();
+		});
+		this.deckCommand("insert-web-embed", "Insert web embed", (v) => {
+			new UrlPrompt(this.app, (url) => {
+				if (!isWebLink(url)) {
+					new Notice("Enter a link that starts with http:// or https://.");
+					return false;
+				}
+				v.engine?.insertWebEmbed(url);
+				return true;
+			}).open();
 		});
 		this.deckCommand("export-pdf", "Export deck to PDF", (v) => {
 			if (v.file) exportDeckPdf(this.app, v.file, parseDeck(v.getViewData()), vaultImageStore(this.app, () => v.file?.path));
@@ -180,5 +200,35 @@ class LinkPicker extends FuzzySuggestModal<LinkTarget | null> {
 	}
 	onChooseItem(t: LinkTarget | null) {
 		this.onPick(t?.link ?? null);
+	}
+}
+
+/** Asks for a URL. Enter or the button submits; the prompt stays open while `onSubmit` returns false. */
+class UrlPrompt extends Modal {
+	constructor(
+		app: App,
+		private onSubmit: (url: string) => boolean,
+	) {
+		super(app);
+	}
+
+	onOpen() {
+		this.setTitle("Insert web embed");
+		let url = "";
+		const submit = () => {
+			if (this.onSubmit(url.trim())) this.close();
+		};
+		new Setting(this.contentEl).setName("URL").addText((t) => {
+			t.setPlaceholder("https://www.youtube.com/watch?v=...").onChange((v) => (url = v));
+			t.inputEl.addEventListener("keydown", (e) => {
+				if (e.key === "Enter") submit();
+			});
+			window.setTimeout(() => t.inputEl.focus());
+		});
+		new Setting(this.contentEl).addButton((b) => b.setButtonText("Insert").setCta().onClick(submit));
+	}
+
+	onClose() {
+		this.contentEl.empty();
 	}
 }

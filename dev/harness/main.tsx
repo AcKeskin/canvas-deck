@@ -2,7 +2,7 @@ import "@excalidraw/excalidraw/index.css";
 import "../../src/deck/deck.css";
 import { convertToExcalidrawElements, getFreeDrawSvgPath } from "@excalidraw/excalidraw";
 import { createRoot } from "react-dom/client";
-import type { CanvasEngine, ImageStore, NoteRenderer } from "../../src/canvas/engine";
+import type { CanvasEngine, CodeEditor, ImageStore, NoteRenderer } from "../../src/canvas/engine";
 import { SlideCanvas } from "../../src/canvas/SlideCanvas";
 import { createSlide, repairElements, type SlideData } from "../../src/canvas/slide-data";
 import { perfSlideSkeletons } from "../../src/dev/perf-slide";
@@ -46,6 +46,14 @@ const notes: NoteRenderer = {
 	open: (path) => opened.push(path),
 };
 
+/** Fake code editor: records the source it got and answers with `harness.nextCode` (null cancels). */
+const code: CodeEditor = {
+	edit: async (source) => {
+		window.harness.codeEdits.push(source);
+		return window.harness.nextCode;
+	},
+};
+
 const params = new URLSearchParams(location.search);
 const perf = Number(params.get("perf") ?? 0);
 const initial: SlideData = {
@@ -60,6 +68,8 @@ declare global {
 			files: Map<string, string>;
 			notes: Map<string, string>;
 			opened: string[];
+			codeEdits: string[];
+			nextCode: string | null;
 			saves: number;
 			freeDrawPath: typeof getFreeDrawSvgPath;
 			deck?: Deck;
@@ -79,6 +89,8 @@ window.harness = {
 	files,
 	notes: noteTexts,
 	opened,
+	codeEdits: [],
+	nextCode: null,
 	saves: 0,
 	freeDrawPath: getFreeDrawSvgPath,
 	serialize: serializeDeck,
@@ -106,6 +118,7 @@ if (params.has("deck")) {
 			initial={deck}
 			images={store}
 			notes={notes}
+			code={code}
 			onChange={(d) => {
 				window.harness.deck = d;
 				window.harness.saves++;
@@ -120,6 +133,7 @@ if (params.has("deck")) {
 			initial={initial}
 			images={store}
 			notes={notes}
+			code={code}
 			onChange={() => window.harness.saves++}
 			onReady={(e) => (window.harness.engine = e)}
 		/>,

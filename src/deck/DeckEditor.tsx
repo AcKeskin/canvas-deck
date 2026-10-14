@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CanvasEngine, ImageStore, NoteRenderer } from "../canvas/engine";
+import type { CanvasEngine, CodeEditor, ImageStore, NoteRenderer } from "../canvas/engine";
 import { SlideCanvas } from "../canvas/SlideCanvas";
 import { moveView, removeView, renameView } from "../canvas/camera";
 import { aspectOf, FRAME_ASPECTS, frameWithAspect, type FrameAspect } from "../canvas/frame";
@@ -20,6 +20,8 @@ export interface DeckEditorProps {
 	initial: Deck;
 	images: ImageStore;
 	notes?: NoteRenderer;
+	/** Code card editor for the editor canvas. Present mode has none: a modal would hide behind fullscreen. */
+	code?: CodeEditor;
 	theme?: "light" | "dark";
 	onChange(deck: Deck): void;
 	onReady?(handle: DeckHandle): void;
@@ -28,7 +30,7 @@ export interface DeckEditorProps {
 }
 
 /** Deck editing screen: slide list, canvas, saved views and speaker notes. */
-export function DeckEditor({ initial, images, notes, theme, onChange, onReady, onEngine }: DeckEditorProps) {
+export function DeckEditor({ initial, images, notes, code, theme, onChange, onReady, onEngine }: DeckEditorProps) {
 	const [deck, setDeck] = useState(initial);
 	const [current, setCurrent] = useState(0);
 	const [presenting, setPresenting] = useState<number | null>(null);
@@ -246,6 +248,7 @@ export function DeckEditor({ initial, images, notes, theme, onChange, onReady, o
 						initial={slide.data}
 						images={images}
 						notes={notes}
+						code={code}
 						theme={theme}
 						editFrame={editFrame}
 						keepAspect={aspect !== "free"}
