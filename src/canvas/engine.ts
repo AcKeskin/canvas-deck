@@ -10,6 +10,7 @@ import {
 import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { addView, CameraController, type CameraHost } from "./camera";
+import { codeSource, CODE_LINK, isCodeLink } from "./code-cards";
 import { MotionSnapshot } from "./motion-snapshot";
 import { formatNoteLink } from "./note-links";
 import { newId, type Bounds, type SlideData } from "./slide-data";
@@ -29,6 +30,12 @@ export interface NoteRenderer {
 	open(path: string): void;
 }
 
+/** Edits code card HTML. An Obsidian modal in the app, a fake in tests. */
+export interface CodeEditor {
+	/** Resolves the new source, or null if the user cancels. */
+	edit(source: string): Promise<string | null>;
+}
+
 /** Public face of one slide canvas. Other modules talk to this, not to Excalidraw. */
 export class CanvasEngine {
 	readonly camera: CameraController;
@@ -43,6 +50,7 @@ export class CanvasEngine {
 		private store: ImageStore,
 		slide: SlideData,
 		private onChange: (slide: SlideData) => void,
+		private code?: CodeEditor,
 	) {
 		this._slide = slide;
 		this.camera = new CameraController(api as unknown as CameraHost);
@@ -140,6 +148,33 @@ export class CanvasEngine {
 		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - width / 2, y: c.y - height / 2, width, height }]);
 		const el = { ...rect, type: "embeddable", link, roundness: null } as ExcalidrawElement;
 		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
+	}
+
+	/** Puts a code card on the canvas, centered at a scene point (default: view center). */
+	insertCodeCard(source: string, at?: { x: number; y: number }) {
+		const c = at ?? this.viewCenter();
+		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - 240, y: c.y - 160, width: 480, height: 320 }]);
+		const el = { ...rect, type: "embeddable", link: CODE_LINK, roundness: null, customData: { source } } as ExcalidrawElement;
+		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
+	}
+
+	/** Replaces a code card's HTML. Undoable. */
+	setCodeSource(id: string, source: string) {
+		const elements = this.api.getSceneElements().map((e) => (e.id === id ? newElementWith(e, { customData: { ...e.customData, source } }) : e));
+		this.api.updateScene({ elements, captureUpdate: CaptureUpdateAction.IMMEDIATELY });
+	}
+
+	selectedCodeCard(): ExcalidrawElement | null {
+		const ids = this.api.getAppState().selectedElementIds;
+		return this.api.getSceneElements().find((e) => ids[e.id] && isCodeLink(e.link)) ?? null;
+	}
+
+	/** Opens the editor on a code card (default: the selected one) and saves the result. */
+	async editCode(id?: string) {
+		const el = id ? this.api.getSceneElements().find((e) => e.id === id) : this.selectedCodeCard();
+		if (!el || !isCodeLink(el.link) || !this.code) return;
+		const source = await this.code.edit(codeSource(el));
+		if (source !== null) this.setCodeSource(el.id, source);
 	}
 
 	/** Re-measures text once fonts have loaded; text measured with a fallback font looks cut off. */

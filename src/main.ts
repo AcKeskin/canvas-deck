@@ -1,4 +1,5 @@
 import { FuzzySuggestModal, MarkdownView, Modal, Notice, normalizePath, Plugin, Setting, TFile, type App, type WorkspaceLeaf } from "obsidian";
+import { STARTER_CODE } from "./canvas/code-cards";
 import { isNotePath } from "./canvas/note-links";
 import { isImagePath } from "./canvas/vault-images";
 import { isWebLink } from "./canvas/web-embeds";
@@ -39,6 +40,14 @@ export default class CanvasDeckPlugin extends Plugin {
 		this.deckCommand("insert-note", "Insert note", (v) => {
 			const files = this.app.vault.getMarkdownFiles().filter((f) => f !== v.file);
 			new FilePicker(this.app, "Pick a note", files, (f) => v.engine?.insertNote(f.path)).open();
+		});
+		this.deckCommand("insert-code-card", "Insert code card", (v) => v.engine?.insertCodeCard(STARTER_CODE));
+		this.deckCommand("edit-code-card", "Edit code card", (v) => {
+			if (!v.engine?.selectedCodeCard()) {
+				new Notice("Select a code card first.");
+				return;
+			}
+			v.engine.editCode();
 		});
 		this.deckCommand("insert-web-embed", "Insert web embed", (v) => {
 			new UrlPrompt(this.app, (url) => {
