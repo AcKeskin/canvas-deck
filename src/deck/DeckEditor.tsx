@@ -1,8 +1,8 @@
 import { convertToExcalidrawElements, exportToSvg } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { BinaryFiles, DataURL } from "@excalidraw/excalidraw/types";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { CanvasEngine, ImageStore } from "../canvas/engine";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CanvasEngine, ImageStore, NoteRenderer } from "../canvas/engine";
 import { SlideCanvas } from "../canvas/SlideCanvas";
 import { moveView, removeView, renameView } from "../canvas/camera";
 import type { SlideData } from "../canvas/slide-data";
@@ -17,6 +17,7 @@ export interface DeckHandle {
 export interface DeckEditorProps {
 	initial: Deck;
 	images: ImageStore;
+	notes?: NoteRenderer;
 	theme?: "light" | "dark";
 	onChange(deck: Deck): void;
 	onReady?(handle: DeckHandle): void;
@@ -25,7 +26,7 @@ export interface DeckEditorProps {
 }
 
 /** Deck editing screen: slide list, canvas, saved views and speaker notes. */
-export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine }: DeckEditorProps) {
+export function DeckEditor({ initial, images, notes, theme, onChange, onReady, onEngine }: DeckEditorProps) {
 	const [deck, setDeck] = useState(initial);
 	const [current, setCurrent] = useState(0);
 	const [presenting, setPresenting] = useState<number | null>(null);
@@ -53,6 +54,19 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 		setPresenting(null);
 		if (engine.current) onEngine?.(engine.current);
 	}, [onEngine]);
+
+	// Opening a note from present mode exits present first.
+	const presentNotes = useMemo<NoteRenderer | undefined>(
+		() =>
+			notes && {
+				render: (path, el) => notes.render(path, el),
+				open: (path) => {
+					exitPresent();
+					notes.open(path);
+				},
+			},
+		[notes, exitPresent],
+	);
 
 	const onSlideData = useCallback(
 		(id: string) => (data: SlideData) => setDeck((d) => updateSlide(d, id, { data })),
@@ -144,6 +158,7 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 						key={slide.id}
 						initial={slide.data}
 						images={images}
+						notes={notes}
 						theme={theme}
 						onChange={onSlideData(slide.id)}
 						onReady={(e) => {
@@ -163,6 +178,7 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 				<Presenter
 					deck={deck}
 					images={images}
+					notes={presentNotes}
 					start={presenting}
 					theme={theme}
 					onExit={exitPresent}

@@ -3,6 +3,7 @@ import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/t
 import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { addView, CameraController, type CameraHost } from "./camera";
 import { MotionSnapshot } from "./motion-snapshot";
+import { formatNoteLink } from "./note-links";
 import { newId, type SlideData } from "./slide-data";
 import { mimeOf, pruneImages, unsavedFileIds } from "./vault-images";
 
@@ -11,6 +12,13 @@ export interface ImageStore {
 	load(path: string): Promise<string | null>;
 	/** Saves a pasted/dropped image and returns its vault path. */
 	save(dataURL: string, mimeType: string): Promise<string>;
+}
+
+/** Shows and opens vault notes for note embeds. Obsidian in the app, a fake in tests. */
+export interface NoteRenderer {
+	/** Draws the note into `el` and keeps it up to date. Returns a cleanup function. */
+	render(path: string, el: HTMLElement): () => void;
+	open(path: string): void;
 }
 
 /** Public face of one slide canvas. Other modules talk to this, not to Excalidraw. */
@@ -106,6 +114,14 @@ export class CanvasEngine {
 			{ type: "image", fileId: id, x: c.x - width / 2, y: c.y - height / 2, width, height },
 		]);
 		this._slide = { ...this._slide, images: { ...this._slide.images, [id]: path } };
+		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
+	}
+
+	/** Puts a live view of a vault note on the canvas, centered at a scene point (default: view center). */
+	insertNote(path: string, at?: { x: number; y: number }) {
+		const c = at ?? this.viewCenter();
+		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - 300, y: c.y - 200, width: 600, height: 400 }]);
+		const el = { ...rect, type: "embeddable", link: formatNoteLink(path), roundness: null } as ExcalidrawElement;
 		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
 	}
 

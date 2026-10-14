@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CanvasEngine, ImageStore } from "../canvas/engine";
+import type { CanvasEngine, ImageStore, NoteRenderer } from "../canvas/engine";
 import { SlideCanvas } from "../canvas/SlideCanvas";
 import type { Deck } from "../deck/deck-model";
 import { next, prev, type Position } from "./stepper";
@@ -7,6 +7,7 @@ import { next, prev, type Position } from "./stepper";
 export interface PresenterProps {
 	deck: Deck;
 	images: ImageStore;
+	notes?: NoteRenderer;
 	start?: number;
 	theme?: "light" | "dark";
 	onExit(): void;
@@ -17,7 +18,7 @@ export interface PresenterProps {
  * Fullscreen player. Arrows/space step through saved views, then slides.
  * Drag and wheel move freely inside a slide; Home returns to the start frame.
  */
-export function Presenter({ deck, images, start = 0, theme, onExit, onEngine }: PresenterProps) {
+export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEngine }: PresenterProps) {
 	const root = useRef<HTMLDivElement>(null);
 	const engine = useRef<CanvasEngine | null>(null);
 	const [pos, setPos] = useState<Position>({ slide: start, view: -1 });
@@ -83,6 +84,7 @@ export function Presenter({ deck, images, start = 0, theme, onExit, onEngine }: 
 				key={slide.id}
 				initial={slide.data}
 				images={images}
+				notes={notes}
 				presenting
 				theme={theme}
 				onChange={() => {}}

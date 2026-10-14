@@ -1,4 +1,5 @@
 import { FuzzySuggestModal, MarkdownView, normalizePath, Plugin, TFile, type App, type WorkspaceLeaf } from "obsidian";
+import { isNotePath } from "./canvas/note-links";
 import { isImagePath } from "./canvas/vault-images";
 import { DECK_FLAG, serializeDeck } from "./deck/deck-format";
 import { createDeck, type Deck } from "./deck/deck-model";
@@ -21,7 +22,12 @@ export default class CanvasDeckPlugin extends Plugin {
 		this.deckCommand("home", "Go to start frame", (v) => v.engine && v.engine.camera.goToFrame(v.engine.slide));
 		this.deckCommand("save-view", "Save current view", (v) => v.engine?.saveCurrentView(`View ${(v.engine?.slide.views.length ?? 0) + 1}`));
 		this.deckCommand("insert-image", "Insert vault image", (v) => {
-			new ImagePicker(this.app, (f) => v.engine?.insertImage(f.path)).open();
+			const files = this.app.vault.getFiles().filter((f) => isImagePath(f.path));
+			new FilePicker(this.app, "Pick an image", files, (f) => v.engine?.insertImage(f.path)).open();
+		});
+		this.deckCommand("insert-note", "Insert note", (v) => {
+			const files = this.app.vault.getMarkdownFiles().filter((f) => f !== v.file);
+			new FilePicker(this.app, "Pick a note", files, (f) => v.engine?.insertNote(f.path)).open();
 		});
 		this.deckCommand("open-markdown", "Open deck as markdown", (v) => {
 			if (!v.file) return;
@@ -54,8 +60,8 @@ export default class CanvasDeckPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.vault.on("rename", (file, oldPath) => {
-				if (!isImagePath(file.path)) return;
-				this.app.workspace.getLeavesOfType(DECK_VIEW).forEach((l) => (l.view as DeckView).renameImage(oldPath, file.path));
+				if (!isImagePath(file.path) && !isNotePath(file.path)) return;
+				this.app.workspace.getLeavesOfType(DECK_VIEW).forEach((l) => (l.view as DeckView).renameLinks(oldPath, file.path));
 			}),
 		);
 	}
@@ -90,16 +96,18 @@ export default class CanvasDeckPlugin extends Plugin {
 	}
 }
 
-class ImagePicker extends FuzzySuggestModal<TFile> {
+class FilePicker extends FuzzySuggestModal<TFile> {
 	constructor(
 		app: App,
+		placeholder: string,
+		private files: TFile[],
 		private onPick: (f: TFile) => void,
 	) {
 		super(app);
-		this.setPlaceholder("Pick an image");
+		this.setPlaceholder(placeholder);
 	}
 	getItems() {
-		return this.app.vault.getFiles().filter((f) => isImagePath(f.path));
+		return this.files;
 	}
 	getItemText(f: TFile) {
 		return f.path;

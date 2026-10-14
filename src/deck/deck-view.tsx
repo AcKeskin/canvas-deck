@@ -1,6 +1,8 @@
 import { Notice, TextFileView } from "obsidian";
 import { createRoot, type Root } from "react-dom/client";
 import { isImagePath, pathFromDragText, renameImage } from "../canvas/vault-images";
+import { isNotePath, renameNote } from "../canvas/note-links";
+import { vaultNoteRenderer } from "../obsidian/note-renderer";
 import { vaultImageStore } from "../obsidian/vault-image-store";
 import type { CanvasEngine } from "../canvas/engine";
 import { parseDeck, serializeDeck } from "./deck-format";
@@ -17,6 +19,7 @@ export class DeckView extends TextFileView {
 	private deck: Deck | null = null;
 	private lastData = "";
 	private images = vaultImageStore(this.app, () => this.file?.path);
+	private notes = vaultNoteRenderer(this.app, () => this.file?.path);
 
 	getViewType() {
 		return DECK_VIEW;
@@ -70,12 +73,12 @@ export class DeckView extends TextFileView {
 		this.unmount();
 	}
 
-	/** Updates image links after a vault rename. */
-	renameImage(oldPath: string, newPath: string) {
+	/** Updates image and note links after a vault rename. */
+	renameLinks(oldPath: string, newPath: string) {
 		if (!this.deck) return;
 		let changed = false;
 		const slides = this.deck.slides.map((s) => {
-			const data = renameImage(s.data, oldPath, newPath);
+			const data = renameNote(renameImage(s.data, oldPath, newPath), oldPath, newPath);
 			if (data !== s.data) changed = true;
 			return data === s.data ? s : { ...s, data };
 		});
@@ -93,6 +96,7 @@ export class DeckView extends TextFileView {
 			<DeckEditor
 				initial={this.deck}
 				images={this.images}
+				notes={this.notes}
 				theme={document.body.hasClass("theme-dark") ? "dark" : "light"}
 				onChange={(d) => {
 					this.deck = d;
@@ -111,16 +115,20 @@ export class DeckView extends TextFileView {
 		this.engine = null;
 	}
 
-	/** Dropping a vault image from the file explorer links it instead of copying. */
+	/** Dropping a vault image or note from the file explorer links it instead of copying. */
 	private onDrop(e: DragEvent) {
 		const text = e.dataTransfer?.getData("text/plain");
 		if (!text || !this.engine || e.dataTransfer?.files.length) return;
 		const path = pathFromDragText(text);
-		if (!path || !isImagePath(path)) return;
+		if (!path) return;
 		const file = this.app.metadataCache.getFirstLinkpathDest(path, this.file?.path ?? "") ?? this.app.vault.getFileByPath(path);
-		if (!file) return;
+		if (!file || file === this.file) return;
+		const isImage = isImagePath(file.path);
+		if (!isImage && !isNotePath(file.path)) return;
 		e.preventDefault();
 		e.stopPropagation();
-		this.engine.insertImage(file.path, this.engine.sceneAt(e.clientX, e.clientY));
+		const at = this.engine.sceneAt(e.clientX, e.clientY);
+		if (isImage) this.engine.insertImage(file.path, at);
+		else this.engine.insertNote(file.path, at);
 	}
 }

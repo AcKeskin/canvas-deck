@@ -2,7 +2,7 @@ import "@excalidraw/excalidraw/index.css";
 import "../../src/deck/deck.css";
 import { convertToExcalidrawElements, getFreeDrawSvgPath } from "@excalidraw/excalidraw";
 import { createRoot } from "react-dom/client";
-import type { CanvasEngine, ImageStore } from "../../src/canvas/engine";
+import type { CanvasEngine, ImageStore, NoteRenderer } from "../../src/canvas/engine";
 import { SlideCanvas } from "../../src/canvas/SlideCanvas";
 import { createSlide, type SlideData } from "../../src/canvas/slide-data";
 import { perfSlideSkeletons } from "../../src/dev/perf-slide";
@@ -26,6 +26,18 @@ const store: ImageStore = {
 	},
 };
 
+/** Fake notes: plain text instead of rendered markdown. */
+const noteTexts = new Map<string, string>([["notes/hello.md", "Hello from a note"]]);
+const opened: string[] = [];
+const notes: NoteRenderer = {
+	render(path, el) {
+		el.style.whiteSpace = "pre-wrap";
+		el.textContent = noteTexts.get(path) ?? `Note not found: ${path}`;
+		return () => {};
+	},
+	open: (path) => opened.push(path),
+};
+
 const params = new URLSearchParams(location.search);
 const perf = Number(params.get("perf") ?? 0);
 const initial: SlideData = {
@@ -38,6 +50,8 @@ declare global {
 		harness: {
 			engine: CanvasEngine | null;
 			files: Map<string, string>;
+			notes: Map<string, string>;
+			opened: string[];
 			saves: number;
 			freeDrawPath: typeof getFreeDrawSvgPath;
 			deck?: Deck;
@@ -47,7 +61,7 @@ declare global {
 		};
 	}
 }
-window.harness = { engine: null, files, saves: 0, freeDrawPath: getFreeDrawSvgPath, serialize: serializeDeck, parse: parseDeck };
+window.harness = { engine: null, files, notes: noteTexts, opened, saves: 0, freeDrawPath: getFreeDrawSvgPath, serialize: serializeDeck, parse: parseDeck };
 
 const root = createRoot(document.getElementById("root")!);
 if (params.has("deck")) {
@@ -60,6 +74,7 @@ if (params.has("deck")) {
 		<DeckEditor
 			initial={deck}
 			images={store}
+			notes={notes}
 			onChange={(d) => {
 				window.harness.deck = d;
 				window.harness.saves++;
@@ -73,6 +88,7 @@ if (params.has("deck")) {
 		<SlideCanvas
 			initial={initial}
 			images={store}
+			notes={notes}
 			onChange={() => window.harness.saves++}
 			onReady={(e) => (window.harness.engine = e)}
 		/>,

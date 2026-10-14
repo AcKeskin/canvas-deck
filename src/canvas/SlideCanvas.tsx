@@ -1,12 +1,15 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { CanvasEngine, type ImageStore } from "./engine";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CanvasEngine, type ImageStore, type NoteRenderer } from "./engine";
+import { noteEmbedProps } from "./NoteEmbed";
 import type { Bounds, SlideData } from "./slide-data";
 
 export interface SlideCanvasProps {
 	initial: SlideData;
 	images: ImageStore;
+	/** Live note embeds. Without it, note embeds show as plain boxes. */
+	notes?: NoteRenderer;
 	/** Present mode: read-only, no editor UI, no frame outline. */
 	presenting?: boolean;
 	theme?: "light" | "dark";
@@ -15,10 +18,11 @@ export interface SlideCanvasProps {
 }
 
 /** One slide as an Excalidraw canvas, with the 16:9 start frame drawn on top. */
-export function SlideCanvas({ initial, images, presenting, theme, onChange, onReady }: SlideCanvasProps) {
+export function SlideCanvas({ initial, images, notes, presenting, theme, onChange, onReady }: SlideCanvasProps) {
 	const engine = useRef<CanvasEngine | null>(null);
 	const host = useRef<HTMLDivElement>(null);
 	const [frameRect, setFrameRect] = useState<Bounds | null>(null);
+	const embedProps = useMemo(() => noteEmbedProps(notes), [notes]);
 
 	const updateFrame = useCallback((scrollX: number, scrollY: number, zoom: number) => {
 		const f = engine.current?.slide.frame ?? initial.frame;
@@ -53,6 +57,7 @@ export function SlideCanvas({ initial, images, presenting, theme, onChange, onRe
 				viewModeEnabled={presenting}
 				zenModeEnabled={presenting}
 				theme={theme}
+				{...embedProps}
 			/>
 			{frameRect && !presenting && (
 				<div
