@@ -1,9 +1,18 @@
-import { convertToExcalidrawElements, getSceneVersion, viewportCoordsToSceneCoords } from "@excalidraw/excalidraw";
+import {
+	CaptureUpdateAction,
+	convertToExcalidrawElements,
+	getCommonBounds,
+	getSceneVersion,
+	newElementWith,
+	restoreElements,
+	viewportCoordsToSceneCoords,
+} from "@excalidraw/excalidraw";
 import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { addView, CameraController, type CameraHost } from "./camera";
 import { MotionSnapshot } from "./motion-snapshot";
-import { newId, type SlideData } from "./slide-data";
+import { formatNoteLink } from "./note-links";
+import { newId, type Bounds, type SlideData } from "./slide-data";
 import { mimeOf, pruneImages, unsavedFileIds } from "./vault-images";
 
 /** Where image bytes live. Obsidian vault in the app, a fake in tests. */
@@ -11,6 +20,13 @@ export interface ImageStore {
 	load(path: string): Promise<string | null>;
 	/** Saves a pasted/dropped image and returns its vault path. */
 	save(dataURL: string, mimeType: string): Promise<string>;
+}
+
+/** Shows and opens vault notes for note embeds. Obsidian in the app, a fake in tests. */
+export interface NoteRenderer {
+	/** Draws the note into `el` and keeps it up to date. Returns a cleanup function. */
+	render(path: string, el: HTMLElement): () => void;
+	open(path: string): void;
 }
 
 /** Public face of one slide canvas. Other modules talk to this, not to Excalidraw. */
@@ -109,9 +125,55 @@ export class CanvasEngine {
 		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
 	}
 
+	/** Puts a live view of a vault note on the canvas, centered at a scene point (default: view center). */
+	insertNote(path: string, at?: { x: number; y: number }) {
+		const c = at ?? this.viewCenter();
+		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - 300, y: c.y - 200, width: 600, height: 400 }]);
+		const el = { ...rect, type: "embeddable", link: formatNoteLink(path), roundness: null } as ExcalidrawElement;
+		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
+	}
+
+	/** Re-measures text once fonts have loaded; text measured with a fallback font looks cut off. */
+	refreshText() {
+		const els = this.api.getSceneElements();
+		const fresh = restoreElements(els, null, { refreshDimensions: true, repairBindings: true });
+		const changed = fresh.some((e, i) => e.type === "text" && (Math.abs(e.width - els[i].width) > 0.5 || Math.abs(e.height - els[i].height) > 0.5));
+		if (changed) this.api.updateScene({ elements: fresh, captureUpdate: CaptureUpdateAction.NEVER });
+	}
+
+	/** Adds elements on top. Missing fields get Excalidraw's defaults. They save like any edit. */
+	addElements(elements: object[]) {
+		const added = restoreElements(elements as any, null);
+		this.api.updateScene({ elements: [...this.api.getSceneElements(), ...added] });
+	}
+
 	/** Scene point under a screen point. */
 	sceneAt(clientX: number, clientY: number) {
 		return viewportCoordsToSceneCoords({ clientX, clientY }, this.api.getAppState());
+	}
+
+	hasSelection(): boolean {
+		return Object.values(this.api.getAppState().selectedElementIds).some(Boolean);
+	}
+
+	/** Sets (or clears, with null) the link on every selected element. */
+	linkSelection(link: string | null) {
+		const ids = this.api.getAppState().selectedElementIds;
+		const elements = this.api.getSceneElements().map((e) => (ids[e.id] ? newElementWith(e, { link }) : e));
+		this.api.updateScene({ elements, captureUpdate: CaptureUpdateAction.IMMEDIATELY });
+	}
+
+	/** Link of the topmost linked element under a screen point, if any. */
+	linkAt(clientX: number, clientY: number): string | null {
+		const p = this.sceneAt(clientX, clientY);
+		const elements = this.api.getSceneElements();
+		for (let i = elements.length - 1; i >= 0; i--) {
+			const e = elements[i];
+			if (!e.link) continue;
+			const [x1, y1, x2, y2] = getCommonBounds([e]);
+			if (p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2) return e.link;
+		}
+		return null;
 	}
 
 	saveCurrentView(name: string) {
@@ -120,6 +182,10 @@ export class CanvasEngine {
 
 	setViews(views: SlideData["views"]) {
 		this.update({ ...this._slide, views });
+	}
+
+	setFrame(frame: Bounds) {
+		this.update({ ...this._slide, frame });
 	}
 
 	private viewCenter() {

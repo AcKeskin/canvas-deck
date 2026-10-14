@@ -104,3 +104,13 @@ test("after present exits, commands act on the editor canvas", async ({ page }) 
 	await page.evaluate(() => window.harness.engine!.saveCurrentView("After present"));
 	await page.waitForFunction(() => window.harness.deck!.slides[0].data.views.length === 1);
 });
+
+test("text is re-measured once the font loads", async ({ page }) => {
+	await page.waitForFunction(() => {
+		const ctx = document.createElement("canvas").getContext("2d")!;
+		return window.harness.engine!.api.getSceneElements().filter((e) => e.type === "text").every((e: any) => {
+			ctx.font = `${e.fontSize}px Excalifont`;
+			return Math.abs(ctx.measureText(e.text).width - e.width) < 1;
+		});
+	});
+});

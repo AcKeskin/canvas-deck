@@ -1,29 +1,41 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { CanvasEngine, type ImageStore } from "./engine";
-import type { Bounds, SlideData } from "./slide-data";
+import type { ExcalidrawImperativeAPI, ExcalidrawProps } from "@excalidraw/excalidraw/types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { parseDeckLink } from "../deck/deck-links";
+import { CanvasEngine, type ImageStore, type NoteRenderer } from "./engine";
+import { FrameHandles } from "./FrameHandles";
+import { noteEmbedProps } from "./NoteEmbed";
+import type { SlideData } from "./slide-data";
 
 export interface SlideCanvasProps {
 	initial: SlideData;
 	images: ImageStore;
+	/** Live note embeds. Without it, note embeds show as plain boxes. */
+	notes?: NoteRenderer;
 	/** Present mode: read-only, no editor UI, no frame outline. */
 	presenting?: boolean;
 	theme?: "light" | "dark";
+	/** Show handles to move and resize the start frame. */
+	editFrame?: boolean;
+	/** Resize keeps the frame's aspect. */
+	keepAspect?: boolean;
 	onChange(slide: SlideData): void;
 	onReady?(engine: CanvasEngine): void;
+	/** Called when a `#cdeck:` link is followed. Other links open as usual. */
+	onDeckLink?(slideId: string, viewId?: string): void;
 }
 
-/** One slide as an Excalidraw canvas, with the 16:9 start frame drawn on top. */
-export function SlideCanvas({ initial, images, presenting, theme, onChange, onReady }: SlideCanvasProps) {
+/** One slide as an Excalidraw canvas, with the start frame drawn on top. */
+export function SlideCanvas({ initial, images, notes, presenting, theme, editFrame, keepAspect, onChange, onReady, onDeckLink }: SlideCanvasProps) {
 	const engine = useRef<CanvasEngine | null>(null);
 	const host = useRef<HTMLDivElement>(null);
-	const [frameRect, setFrameRect] = useState<Bounds | null>(null);
+	const down = useRef<{ x: number; y: number } | null>(null);
+	const [cam, setCam] = useState<{ scrollX: number; scrollY: number; zoom: number } | null>(null);
+	const embedProps = useMemo(() => noteEmbedProps(notes), [notes]);
+	// Read at render: the parent re-renders after every slide change, frame edits included.
+	const f = engine.current?.slide.frame ?? initial.frame;
 
-	const updateFrame = useCallback((scrollX: number, scrollY: number, zoom: number) => {
-		const f = engine.current?.slide.frame ?? initial.frame;
-		setFrameRect({ x: (f.x + scrollX) * zoom, y: (f.y + scrollY) * zoom, width: f.width * zoom, height: f.height * zoom });
-	}, [initial]);
+	const updateFrame = useCallback((scrollX: number, scrollY: number, zoom: number) => setCam({ scrollX, scrollY, zoom }), []);
 
 	useEffect(() => () => engine.current?.dispose(), []);
 
@@ -38,14 +50,44 @@ export function SlideCanvas({ initial, images, presenting, theme, onChange, onRe
 			requestAnimationFrame(() => {
 				e.camera.goToFrame(initial, { animate: false });
 				e.loadImages();
+				document.fonts.ready.then(() => e.refreshText());
 				onReady?.(e);
 			});
 		},
 		[images, initial, onChange, onReady, updateFrame, theme],
 	);
 
+	// Stable so Excalidraw's memo skips re-rendering on scroll.
+	const onLinkOpen = useCallback<NonNullable<ExcalidrawProps["onLinkOpen"]>>(
+		(el, event) => {
+			const target = parseDeckLink(el.link);
+			if (!target) return embedProps.onLinkOpen?.(el, event);
+			event.preventDefault();
+			// Present mode follows links in onPointerUp.
+			if (!presenting) onDeckLink?.(target.slideId, target.viewId);
+		},
+		[embedProps, presenting, onDeckLink],
+	);
+
+	// In present mode a click or tap anywhere on a linked element follows it.
+	// Excalidraw does this on desktop only, so taps are handled here for all devices.
+	const onPointerUp = (e: React.PointerEvent) => {
+		const start = down.current;
+		down.current = null;
+		if (!presenting || !start || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) return;
+		const target = parseDeckLink(engine.current?.linkAt(e.clientX, e.clientY));
+		if (target) onDeckLink?.(target.slideId, target.viewId);
+	};
+
 	return (
-		<div ref={host} className={`canvas-deck-slide${presenting ? " is-presenting" : ""}`} style={{ position: "relative", width: "100%", height: "100%" }}>
+		<div
+			ref={host}
+			className={`canvas-deck-slide${presenting ? " is-presenting" : ""}`}
+			style={{ position: "relative", width: "100%", height: "100%" }}
+			// A second finger means pinch, not a tap.
+			onPointerDownCapture={(e) => (down.current = e.isPrimary ? { x: e.clientX, y: e.clientY } : null)}
+			onPointerUpCapture={onPointerUp}
+		>
 			<Excalidraw
 				excalidrawAPI={onApi}
 				initialData={{ elements: initial.elements, scrollToContent: false }}
@@ -53,16 +95,21 @@ export function SlideCanvas({ initial, images, presenting, theme, onChange, onRe
 				viewModeEnabled={presenting}
 				zenModeEnabled={presenting}
 				theme={theme}
+				{...embedProps}
+				onLinkOpen={onLinkOpen}
 			/>
-			{frameRect && !presenting && (
+			{cam && !presenting && editFrame && (
+				<FrameHandles frame={f} {...cam} keepAspect={!!keepAspect} onCommit={(b) => engine.current?.setFrame(b)} />
+			)}
+			{cam && !presenting && !editFrame && (
 				<div
 					className="canvas-deck-frame"
 					style={{
 						position: "absolute",
-						left: frameRect.x,
-						top: frameRect.y,
-						width: frameRect.width,
-						height: frameRect.height,
+						left: (f.x + cam.scrollX) * cam.zoom,
+						top: (f.y + cam.scrollY) * cam.zoom,
+						width: f.width * cam.zoom,
+						height: f.height * cam.zoom,
 						border: "2px dashed var(--interactive-accent, #6965db)",
 						pointerEvents: "none",
 						boxSizing: "border-box",

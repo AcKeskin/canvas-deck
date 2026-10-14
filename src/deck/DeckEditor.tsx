@@ -1,22 +1,25 @@
-import { convertToExcalidrawElements, exportToSvg } from "@excalidraw/excalidraw";
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import type { BinaryFiles, DataURL } from "@excalidraw/excalidraw/types";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { CanvasEngine, ImageStore } from "../canvas/engine";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CanvasEngine, ImageStore, NoteRenderer } from "../canvas/engine";
 import { SlideCanvas } from "../canvas/SlideCanvas";
 import { moveView, removeView, renameView } from "../canvas/camera";
+import { aspectOf, FRAME_ASPECTS, frameWithAspect, type FrameAspect } from "../canvas/frame";
 import type { SlideData } from "../canvas/slide-data";
-import { mimeOf } from "../canvas/vault-images";
 import { Presenter } from "../present/Presenter";
-import { addSlide, deleteSlide, duplicateSlide, moveSlide, updateSlide, type Deck } from "./deck-model";
+import { resolveDeckLink } from "./deck-links";
+import { Thumb } from "./Thumb";
+import { addSlide, deleteSlide, duplicateSlide, insertSlide, moveSlide, updateSlide, type Deck, type DeckSlide } from "./deck-model";
 
 export interface DeckHandle {
 	present(from?: number): void;
+	currentSlide(): DeckSlide;
+	/** Inserts a copy of the slide after the current one and opens it. */
+	insertSlide(slide: DeckSlide): void;
 }
 
 export interface DeckEditorProps {
 	initial: Deck;
 	images: ImageStore;
+	notes?: NoteRenderer;
 	theme?: "light" | "dark";
 	onChange(deck: Deck): void;
 	onReady?(handle: DeckHandle): void;
@@ -25,12 +28,21 @@ export interface DeckEditorProps {
 }
 
 /** Deck editing screen: slide list, canvas, saved views and speaker notes. */
-export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine }: DeckEditorProps) {
+export function DeckEditor({ initial, images, notes, theme, onChange, onReady, onEngine }: DeckEditorProps) {
 	const [deck, setDeck] = useState(initial);
 	const [current, setCurrent] = useState(0);
 	const [presenting, setPresenting] = useState<number | null>(null);
+	const [editFrame, setEditFrame] = useState(false);
+	// Slide whose frame the user set to free; other frames show their named aspect.
+	const [freeSlide, setFreeSlide] = useState<string | null>(null);
+	// The view chip clicked last; its notes show in the notes box.
+	const [activeView, setActiveView] = useState<{ slide: string; view: string } | null>(null);
 	const engine = useRef<CanvasEngine | null>(null);
+	/** View to fly to once the next slide's canvas is ready. */
+	const pendingView = useRef<string | null>(null);
 	const first = useRef(true);
+	const deckRef = useRef(deck);
+	deckRef.current = deck;
 	const slide = deck.slides[Math.min(current, deck.slides.length - 1)];
 
 	useEffect(() => {
@@ -42,7 +54,14 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 	}, [deck]);
 
 	useEffect(() => {
-		onReady?.({ present: (from) => setPresenting(from ?? current) });
+		onReady?.({
+			present: (from) => setPresenting(from ?? current),
+			currentSlide: () => deckRef.current.slides[Math.min(current, deckRef.current.slides.length - 1)],
+			insertSlide: (s) => {
+				setDeck((d) => insertSlide(d, s, current));
+				setCurrent(current + 1);
+			},
+		});
 	}, [current, onReady]);
 
 	const edit = (fn: (d: Deck) => Deck) => setDeck(fn);
@@ -54,12 +73,52 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 		if (engine.current) onEngine?.(engine.current);
 	}, [onEngine]);
 
+	// Opening a note from present mode exits present first.
+	const presentNotes = useMemo<NoteRenderer | undefined>(
+		() =>
+			notes && {
+				render: (path, el) => notes.render(path, el),
+				open: (path) => {
+					exitPresent();
+					notes.open(path);
+				},
+			},
+		[notes, exitPresent],
+	);
+
 	const onSlideData = useCallback(
 		(id: string) => (data: SlideData) => setDeck((d) => updateSlide(d, id, { data })),
 		[],
 	);
 
+	// Following a deck link selects that slide and flies to the view.
+	const followLink = (slideId: string, viewId?: string) => {
+		const p = resolveDeckLink(deck, slideId, viewId);
+		if (!p) return;
+		const target = deck.slides[p.slide];
+		const view = p.view >= 0 ? target.data.views[p.view].id : null;
+		const e = engine.current;
+		if (target.id !== slide.id) {
+			pendingView.current = view;
+			setCurrent(p.slide);
+		} else if (e) {
+			if (view) e.camera.goToView(e.slide, view);
+			else e.camera.goToFrame(e.slide);
+		}
+	};
+	const keepSlideData = useCallback((id: string, data: SlideData) => setDeck((d) => updateSlide(d, id, { data })), []);
+
 	const views = slide.data.views;
+	const view = activeView?.slide === slide.id ? views.find((v) => v.id === activeView.view) : undefined;
+	const aspect: FrameAspect = freeSlide === slide.id ? "free" : aspectOf(slide.data.frame);
+
+	const setAspect = (a: FrameAspect) => {
+		setFreeSlide(a === "free" ? slide.id : null);
+		const e = engine.current;
+		if (!e || a === "free") return;
+		e.setFrame(frameWithAspect(e.slide.frame, a));
+		e.camera.goToFrame(e.slide);
+	};
 
 	return (
 		<div className="canvas-deck-editor">
@@ -95,13 +154,22 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 						onChange={(e) => edit((d) => updateSlide(d, slide.id, { title: e.target.value }))}
 					/>
 					<div className="canvas-deck-views" aria-label="Saved views">
-						<button onClick={() => engine.current?.camera.goToFrame(slide.data)} title="Back to the start frame">
+						<button
+							onClick={() => {
+								setActiveView(null);
+								engine.current?.camera.goToFrame(slide.data);
+							}}
+							title="Back to the start frame"
+						>
 							Frame
 						</button>
 						{views.map((v, i) => (
-							<span key={v.id} className="canvas-deck-view-chip">
+							<span key={v.id} className={`canvas-deck-view-chip${v === view ? " is-active" : ""}`}>
 								<button
-									onClick={() => engine.current?.camera.goToView(engine.current.slide, v.id)}
+									onClick={() => {
+										setActiveView({ slide: slide.id, view: v.id });
+										engine.current?.camera.goToView(engine.current.slide, v.id);
+									}}
 									onDoubleClick={() => {
 										const name = window.prompt("View name", v.name);
 										if (name) engine.current?.setViews(renameView(engine.current.slide, v.id, name).views);
@@ -135,6 +203,34 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 							+ Save view
 						</button>
 					</div>
+					<select
+						aria-label="Frame aspect"
+						title="Start frame aspect"
+						value={aspect}
+						onChange={(e) => setAspect(e.target.value as FrameAspect)}
+					>
+						{FRAME_ASPECTS.map((a) => (
+							<option key={a} value={a}>
+								{a === "free" ? "Free" : a}
+							</option>
+						))}
+					</select>
+					<button
+						className={editFrame ? "is-active" : ""}
+						aria-pressed={editFrame}
+						onClick={() => {
+							setEditFrame(!editFrame);
+							// Zoom out a little so the corner handles are on screen.
+							const e = engine.current;
+							if (!editFrame && e) {
+								const f = e.slide.frame;
+								e.camera.goToBounds({ x: f.x - f.width * 0.1, y: f.y - f.height * 0.1, width: f.width * 1.2, height: f.height * 1.2 });
+							}
+						}}
+						title="Move and resize the start frame"
+					>
+						Edit frame
+					</button>
 					<button className="mod-cta canvas-deck-present-btn" onClick={() => setPresenting(current)}>
 						▶ Present
 					</button>
@@ -144,29 +240,45 @@ export function DeckEditor({ initial, images, theme, onChange, onReady, onEngine
 						key={slide.id}
 						initial={slide.data}
 						images={images}
+						notes={notes}
 						theme={theme}
+						editFrame={editFrame}
+						keepAspect={aspect !== "free"}
 						onChange={onSlideData(slide.id)}
 						onReady={(e) => {
 							engine.current = e;
+							if (pendingView.current) e.camera.goToView(e.slide, pendingView.current, { animate: false });
+							pendingView.current = null;
 							onEngine?.(e);
+						}}
+						onDeckLink={followLink}
+					/>
+				</div>
+				<div className="canvas-deck-notes-box">
+					<div className="canvas-deck-notes-label">{view ? `Notes — view: ${view.name}` : "Notes — slide"}</div>
+					<textarea
+						className="canvas-deck-notes"
+						placeholder={view ? "Notes for this view (shown in present mode at this step)" : "Speaker notes"}
+						value={view ? (view.notes ?? "") : slide.notes}
+						onChange={(e) => {
+							const notes = e.target.value;
+							const en = engine.current;
+							if (view && en) en.setViews(en.slide.views.map((v) => (v.id === view.id ? { ...v, notes } : v)));
+							else edit((d) => updateSlide(d, slide.id, { notes }));
 						}}
 					/>
 				</div>
-				<textarea
-					className="canvas-deck-notes"
-					placeholder="Speaker notes"
-					value={slide.notes}
-					onChange={(e) => edit((d) => updateSlide(d, slide.id, { notes: e.target.value }))}
-				/>
 			</div>
 			{presenting !== null && (
 				<Presenter
 					deck={deck}
 					images={images}
+					notes={presentNotes}
 					start={presenting}
 					theme={theme}
 					onExit={exitPresent}
 					onEngine={onEngine}
+					onSlideData={keepSlideData}
 				/>
 			)}
 		</div>
@@ -223,50 +335,4 @@ function SlideList({ deck, images, current, onSelect, onAdd, onDuplicate, onDele
 			</div>
 		</div>
 	);
-}
-
-/** Small preview of the slide's start frame, redrawn shortly after its content changes. */
-function Thumb({ data, images }: { data: SlideData; images: ImageStore }) {
-	const ref = useRef<HTMLDivElement>(null);
-	useEffect(() => {
-		const t = window.setTimeout(async () => {
-			const el = ref.current;
-			if (!el) return;
-			const f = data.frame;
-			// An invisible rectangle pins the export to the start frame.
-			const [pin] = convertToExcalidrawElements([
-				{ type: "rectangle", x: f.x, y: f.y, width: f.width, height: f.height, opacity: 0, strokeColor: "transparent" },
-			]);
-			const inFrame = data.elements.filter(
-				(e) => e.x < f.x + f.width && e.x + e.width > f.x && e.y < f.y + f.height && e.y + e.height > f.y,
-			);
-			try {
-				const svg = await exportToSvg({
-					elements: [pin, ...inFrame],
-					files: await loadFiles(inFrame, data, images),
-					appState: { exportBackground: false, exportPadding: 0 } as any,
-					exportPadding: 0,
-				});
-				svg.setAttribute("width", "100%");
-				svg.setAttribute("height", "100%");
-				el.replaceChildren(svg);
-			} catch {
-				el.replaceChildren();
-			}
-		}, 600);
-		return () => window.clearTimeout(t);
-	}, [data, images]);
-	return <div className="canvas-deck-thumb" ref={ref} />;
-}
-
-/** Image bytes for the image elements in `elements`. Missing files are skipped. */
-async function loadFiles(elements: readonly ExcalidrawElement[], data: SlideData, images: ImageStore): Promise<BinaryFiles> {
-	const files: BinaryFiles = {};
-	for (const e of elements) {
-		if (e.type !== "image" || !e.fileId || files[e.fileId]) continue;
-		const path = data.images[e.fileId];
-		const dataURL = path ? await images.load(path) : null;
-		if (dataURL) files[e.fileId] = { id: e.fileId, dataURL: dataURL as DataURL, mimeType: mimeOf(path) as any, created: 0 };
-	}
-	return files;
 }
