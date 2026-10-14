@@ -42,6 +42,7 @@ describe("embedOf", () => {
 		expect(embedOf(embed("obsidian-note:notes/a.md"))).toEqual({ kind: "note", path: "notes/a.md" });
 		expect(embedOf(embed("https://example.com/x"))).toEqual({ kind: "web", src: "https://example.com/x" });
 		expect(embedOf(embed("http://example.com"))).toEqual({ kind: "web", src: "http://example.com" });
+		expect(embedOf(embed("https://youtu.be/abc123"))).toEqual({ kind: "web", src: "https://www.youtube.com/embed/abc123" });
 		expect(embedOf(embed("canvas-deck-code:", 0, 0, 1, 1, { customData: { source: "<b>hi</b>" } }))).toEqual({
 			kind: "code",
 			source: "<b>hi</b>",
@@ -51,7 +52,6 @@ describe("embedOf", () => {
 	test("anything else shows nothing", () => {
 		expect(embedOf(embed(null))).toBeNull();
 		expect(embedOf(embed("#cdeck:abc"))).toBeNull();
-		expect(embedOf(embed("canvas-deck-code:"))).toBeNull();
 		expect(embedOf(embed("javascript:alert(1)"))).toBeNull();
 	});
 });
@@ -96,7 +96,8 @@ describe("buildDeckHtml", () => {
 		expect(html.match(/<\/script>/g)).toHaveLength(1);
 		expect(html).not.toContain("<img src=x");
 		expect(html).toContain("<title>Deck &#60;1&#62;</title>");
-		expect(html).toContain(`sandbox="allow-scripts" data-srcdoc="&#60;p class=&#34;a&#34;&#62;&#34;hi&#34;&#60;/p&#62;"`);
+		expect(html).toContain(`sandbox="allow-scripts" data-srcdoc="&#60;!doctype html&#62;`);
+		expect(html).toContain(`&#60;p class=&#34;a&#34;&#62;&#34;hi&#34;&#60;/p&#62;"`);
 		expect(html).not.toContain("allow-same-origin");
 	});
 

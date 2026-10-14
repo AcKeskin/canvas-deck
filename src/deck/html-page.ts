@@ -1,3 +1,4 @@
+import { codeSrcdoc } from "../canvas/code-cards";
 import type { HtmlPage, Overlay } from "./html-plan";
 
 /** Makes text safe inside HTML text and quoted attributes. */
@@ -42,7 +43,7 @@ function overlayHtml(o: Overlay, notes: Map<string, string>): string {
 	// iframes get their src when their page shows, so hidden pages load nothing.
 	if (o.kind === "note") return `<div class="embed note" ${style}>${notes.get(o.path) ?? ""}</div>`;
 	if (o.kind === "web") return `<iframe class="embed" ${style} data-src="${escapeHtml(o.src)}" allowfullscreen></iframe>`;
-	return `<iframe class="embed" ${style} sandbox="allow-scripts" data-srcdoc="${escapeHtml(o.source)}"></iframe>`;
+	return `<iframe class="embed" ${style} sandbox="allow-scripts" data-srcdoc="${escapeHtml(codeSrcdoc(o.source))}"></iframe>`;
 }
 
 const CSS = `

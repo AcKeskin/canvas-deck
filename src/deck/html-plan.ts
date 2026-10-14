@@ -1,6 +1,8 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import { codeSource, isCodeLink } from "../canvas/code-cards";
 import { parseNoteLink } from "../canvas/note-links";
 import type { Bounds } from "../canvas/slide-data";
+import { isWebLink, webEmbedSrc } from "../canvas/web-embeds";
 import type { Deck } from "./deck-model";
 
 /** What a live embed shows. */
@@ -62,21 +64,10 @@ function pct(v: number, of: number): number {
 
 /** What an embeddable shows, from its link. Null for kinds we can't show. */
 export function embedOf(el: ExcalidrawElement): Embed | null {
-	const source = codeSource(el);
-	if (source !== null) return { kind: "code", source };
+	if (isCodeLink(el.link)) return { kind: "code", source: codeSource(el) };
 	const path = parseNoteLink(el.link);
 	if (path) return { kind: "note", path };
-	if (el.link && /^https?:\/\//i.test(el.link)) return { kind: "web", src: webSrc(el.link) };
+	if (isWebLink(el.link)) return { kind: "web", src: webEmbedSrc(el.link) };
 	return null;
 }
 
-/** Code card HTML, or null if `el` isn't a code card. */
-function codeSource(el: ExcalidrawElement): string | null {
-	const source = el.customData?.source;
-	return el.link === "canvas-deck-code:" && typeof source === "string" ? source : null;
-}
-
-/** iframe src for a web embed link. */
-function webSrc(url: string): string {
-	return url;
-}
