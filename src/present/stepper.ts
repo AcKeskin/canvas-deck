@@ -19,7 +19,3 @@ export function prev(p: Position, shape: Shape): Position {
 	if (p.slide > 0) return { slide: p.slide - 1, view: -1 };
 	return p;
 }
-
-export function isEnd(p: Position, shape: Shape): boolean {
-	return next(p, shape) === p;
-}

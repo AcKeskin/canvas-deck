@@ -3,8 +3,8 @@ import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/t
 import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { addView, CameraController, type CameraHost } from "./camera";
 import { MotionSnapshot } from "./motion-snapshot";
-import type { SlideData } from "./slide-data";
-import { mimeOf, pruneImages, renameImage, unsavedFileIds } from "./vault-images";
+import { newId, type SlideData } from "./slide-data";
+import { mimeOf, pruneImages, unsavedFileIds } from "./vault-images";
 
 /** Where image bytes live. Obsidian vault in the app, a fake in tests. */
 export interface ImageStore {
@@ -42,6 +42,12 @@ export class CanvasEngine {
 	/** True once big-slide animation can use the pre-rendered picture. */
 	get motionReady(): boolean {
 		return this.motion?.ready ?? false;
+	}
+
+	/** Stops pending work. Call when the canvas unmounts. */
+	dispose() {
+		window.clearTimeout(this.prepareTimer);
+		this.motion = null;
 	}
 
 	private schedulePrepare(delay: number) {
@@ -93,7 +99,7 @@ export class CanvasEngine {
 		const dataURL = await this.store.load(path);
 		if (!dataURL) throw new Error(`Cannot read ${path}`);
 		const { width, height } = await imageSize(dataURL);
-		const id = randomId() as FileId;
+		const id = newId() as FileId;
 		this.api.addFiles([{ id, dataURL: dataURL as DataURL, mimeType: mimeOf(path) as any, created: Date.now() }]);
 		const c = at ?? this.viewCenter();
 		const [el] = convertToExcalidrawElements([
@@ -108,13 +114,8 @@ export class CanvasEngine {
 		return viewportCoordsToSceneCoords({ clientX, clientY }, this.api.getAppState());
 	}
 
-	renameImage(oldPath: string, newPath: string) {
-		const next = renameImage(this._slide, oldPath, newPath);
-		if (next !== this._slide) this.update(next);
-	}
-
 	saveCurrentView(name: string) {
-		this.update(addView(this._slide, { id: randomId(), name, bounds: this.camera.currentBounds() }));
+		this.update(addView(this._slide, { id: newId(), name, bounds: this.camera.currentBounds() }));
 	}
 
 	setViews(views: SlideData["views"]) {
@@ -139,8 +140,4 @@ function imageSize(dataURL: string): Promise<{ width: number; height: number }> 
 		img.onerror = reject;
 		img.src = dataURL;
 	});
-}
-
-function randomId(): string {
-	return Math.random().toString(36).slice(2, 12);
 }

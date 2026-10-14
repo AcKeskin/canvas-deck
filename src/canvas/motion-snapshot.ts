@@ -6,14 +6,22 @@ import type { Camera, Motion } from "./camera";
 const MIN_ELEMENTS = 300;
 const MAX_SIDE = 2048;
 
+interface Snap {
+	canvas: HTMLCanvasElement;
+	x: number;
+	y: number;
+	scale: number;
+}
+
 /**
  * Big slides: during a camera animation, show one pre-rendered picture of the scene
  * moved with a CSS transform, instead of redrawing every object each frame.
  */
 export class MotionSnapshot implements Motion {
-	private snap: { canvas: HTMLCanvasElement; x: number; y: number; scale: number } | null = null;
+	private snap: Snap | null = null;
 	private version = -1;
-	private active = false;
+	/** Picture on screen during an animation. `prepare` may replace `snap` meanwhile. */
+	private shown: Snap | null = null;
 
 	constructor(
 		private api: ExcalidrawImperativeAPI,
@@ -48,25 +56,25 @@ export class MotionSnapshot implements Motion {
 	}
 
 	begin(): boolean {
-		if (!this.snap || this.active) return !!this.snap;
-		this.active = true;
-		this.host.appendChild(this.snap.canvas);
+		if (!this.snap || this.shown) return !!this.snap;
+		this.shown = this.snap;
+		this.host.appendChild(this.shown.canvas);
 		this.host.classList.add("is-moving");
 		return true;
 	}
 
 	frame(cam: Camera) {
-		if (!this.snap) return;
-		const { canvas, x, y, scale } = this.snap;
+		if (!this.shown) return;
+		const { canvas, x, y, scale } = this.shown;
 		const tx = (x + cam.scrollX) * cam.zoom;
 		const ty = (y + cam.scrollY) * cam.zoom;
 		canvas.style.transform = `translate(${tx}px, ${ty}px) scale(${cam.zoom / scale})`;
 	}
 
 	end() {
-		if (!this.active) return;
-		this.active = false;
-		this.snap?.canvas.remove();
+		if (!this.shown) return;
+		this.shown.canvas.remove();
+		this.shown = null;
 		this.host.classList.remove("is-moving");
 	}
 }
