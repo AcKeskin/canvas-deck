@@ -109,6 +109,8 @@ export const PLAYER = `
 
 	// Click or tap: right half steps on, left half steps back.
 	document.addEventListener("click", function (e) {
+		// Vault links have no target outside Obsidian.
+		if (e.target.closest("a.internal-link")) e.preventDefault();
 		if (e.target.closest(".embed, .notes")) return;
 		show(e.clientX < window.innerWidth / 2 ? at - 1 : at + 1);
 	});

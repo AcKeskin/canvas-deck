@@ -92,7 +92,7 @@ Drag and scroll to move freely while presenting.
 
 ### HTML export
 
-`<deck>.html` steps through the same start frames and views. Keys: → Space Enter PageDown next, ← Backspace PageUp back, Home start frame, N notes, F full screen. A click or tap on the right or left half also steps. Each page is a picture, so there is no free pan or zoom. Note embeds (as they were at export), code cards and web pages show on top of it. Web pages need the network. After a click inside an embed, click the slide once so the keys work again.
+`<deck>.html` steps through the same start frames and views. Keys: → ↓ Space Enter PageDown next, ← ↑ Backspace PageUp back, Home start frame, N notes, F full screen. A click or tap on the right or left half also steps. Each page is a picture, so there is no free pan or zoom. Note embeds (as they were at export), code cards and web pages show on top of it. Web pages need the network. After a click inside an embed, click the slide once so the keys work again.
 
 ## How decks are stored
 
