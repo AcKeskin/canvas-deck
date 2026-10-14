@@ -15,6 +15,7 @@ Canvas Deck makes slide decks in Obsidian where each slide is an infinite canvas
 - Present mode: keys to step, show notes, draw with a pen, use a laser pointer, keep the ink on the slide, and open a grid of all slides and views.
 - Links: make any object jump to another slide or view when clicked in present mode.
 - Live note embeds: drop a note on the canvas and it shows the note's current content.
+- Code cards: HTML, CSS and JS that run live on the slide, and stay interactive in present mode.
 - Vault images: insert images from the vault. Renames are followed.
 - Templates: save a slide as a template and start new slides from it.
 - PDF export: one page per start frame, optionally one per saved view, optionally with speaker notes.
@@ -48,6 +49,7 @@ Run **New deck** from the command palette or click the ribbon icon. **New demo d
 - Top: the aspect menu, **Edit frame**, **+ Save view**, and the saved views. Click a view to fly to it.
 - Bottom: speaker notes. After you click a view, the box edits that view's notes. Click **Frame** to go back to the slide notes.
 - To embed a note, drag it from the file explorer onto the canvas, or run **Insert note**. In the editor, click it to select and click again to open it. In present mode one click leaves present mode and opens the note.
+- To add a code card, run **Insert code card**. To edit it, click its link icon, or select it and run **Edit code card**. In the editor, click the middle of a card to use it; in present mode it works right away. Cards run in a sandbox: scripts run, but they have no access to the vault or Obsidian.
 - To link, select objects and run **Link selection to slide or view**. You can also type `#cdeck:<slideId>` or `#cdeck:<slideId>/<viewId>` in Excalidraw's link box.
 - The template folder is set in the plugin settings.
 
@@ -63,6 +65,8 @@ Run **New deck** from the command palette or click the ribbon icon. **New demo d
 | Save current view | Save what you see as a step |
 | Insert vault image | Pick an image from the vault |
 | Insert note | Pick a note to embed live |
+| Insert code card | Add a live HTML/JS card |
+| Edit code card | Edit the selected card's source |
 | Link selection to slide or view | Make the selection a link |
 | Save slide as template | Save the current slide to the template folder |
 | New slide from template | Add a slide from a template |
