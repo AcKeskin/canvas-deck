@@ -14,6 +14,8 @@ export interface SlideCanvasProps {
 	notes?: NoteRenderer;
 	/** Present mode: read-only, no editor UI, no frame outline. */
 	presenting?: boolean;
+	/** Present mode with the editor tools on. */
+	editing?: boolean;
 	theme?: "light" | "dark";
 	/** Show handles to move and resize the start frame. */
 	editFrame?: boolean;
@@ -26,7 +28,7 @@ export interface SlideCanvasProps {
 }
 
 /** One slide as an Excalidraw canvas, with the start frame drawn on top. */
-export function SlideCanvas({ initial, images, notes, presenting, theme, editFrame, keepAspect, onChange, onReady, onDeckLink }: SlideCanvasProps) {
+export function SlideCanvas({ initial, images, notes, presenting, editing, theme, editFrame, keepAspect, onChange, onReady, onDeckLink }: SlideCanvasProps) {
 	const engine = useRef<CanvasEngine | null>(null);
 	const host = useRef<HTMLDivElement>(null);
 	const down = useRef<{ x: number; y: number } | null>(null);
@@ -74,7 +76,7 @@ export function SlideCanvas({ initial, images, notes, presenting, theme, editFra
 	const onPointerUp = (e: React.PointerEvent) => {
 		const start = down.current;
 		down.current = null;
-		if (!presenting || !start || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) return;
+		if (!presenting || editing || !start || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) return;
 		const target = parseDeckLink(engine.current?.linkAt(e.clientX, e.clientY));
 		if (target) onDeckLink?.(target.slideId, target.viewId);
 	};
@@ -82,7 +84,7 @@ export function SlideCanvas({ initial, images, notes, presenting, theme, editFra
 	return (
 		<div
 			ref={host}
-			className={`canvas-deck-slide${presenting ? " is-presenting" : ""}`}
+			className={`canvas-deck-slide${presenting && !editing ? " is-presenting" : ""}`}
 			style={{ position: "relative", width: "100%", height: "100%" }}
 			// A second finger means pinch, not a tap.
 			onPointerDownCapture={(e) => (down.current = e.isPrimary ? { x: e.clientX, y: e.clientY } : null)}
@@ -92,8 +94,8 @@ export function SlideCanvas({ initial, images, notes, presenting, theme, editFra
 				excalidrawAPI={onApi}
 				initialData={{ elements: initial.elements, scrollToContent: false }}
 				onChange={(els, state, files) => engine.current?.handleChange(els, state, files)}
-				viewModeEnabled={presenting}
-				zenModeEnabled={presenting}
+				viewModeEnabled={presenting && !editing}
+				zenModeEnabled={presenting && !editing}
 				theme={theme}
 				{...embedProps}
 				onLinkOpen={onLinkOpen}

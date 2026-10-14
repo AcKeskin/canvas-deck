@@ -34,6 +34,23 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 	const [showGrid, setShowGrid] = useState(false);
 	const [tool, setTool] = useState<InkTool | null>(null);
 	const [strokes, setStrokes] = useState<Stroke[]>([]);
+	const [editing, setEditing] = useState(false);
+	// The canvas keeps its first onChange, so it reads edit mode from a ref.
+	const editingRef = useRef(false);
+	editingRef.current = editing;
+	const [showHelp, setShowHelp] = useState(false);
+	// The bar shows fully for a moment after the pointer moves.
+	const [awake, setAwake] = useState(true);
+	const awakeTimer = useRef(0);
+	const wake = useCallback(() => {
+		setAwake(true);
+		window.clearTimeout(awakeTimer.current);
+		awakeTimer.current = window.setTimeout(() => setAwake(false), 2500);
+	}, []);
+	useEffect(() => {
+		wake();
+		return () => window.clearTimeout(awakeTimer.current);
+	}, [wake]);
 	const shape = deck.slides.map((s) => s.data.views.length);
 	const slide = deck.slides[pos.slide];
 	// The current view's notes if it has any, else the slide's.
@@ -79,7 +96,15 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 		setStrokes([]);
 	}, [strokes]);
 
-	const toggleTool = (t: InkTool) => setTool((cur) => (cur === t ? null : t));
+	const toggleTool = (t: InkTool) => {
+		setEditing(false);
+		setTool((cur) => (cur === t ? null : t));
+	};
+
+	const toggleEdit = () => {
+		setTool(null);
+		setEditing((v) => !v);
+	};
 
 	const jump = (p: Position) => {
 		setPos(p);
@@ -102,6 +127,16 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
 			const k = e.key;
+			// In edit mode keys belong to the canvas; Esc leaves edit mode unless typing.
+			if (editing) {
+				const typing = e.target instanceof HTMLElement && (e.target.isContentEditable || ["INPUT", "TEXTAREA"].includes(e.target.tagName));
+				if (k === "Escape" && !typing) {
+					setEditing(false);
+					e.preventDefault();
+					e.stopPropagation();
+				}
+				return;
+			}
 			let handled = true;
 			if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(k)) setPos((p) => next(p, shape));
 			else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(k)) setPos((p) => prev(p, shape));
@@ -109,7 +144,8 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 				setPos((p) => ({ ...p, view: -1 }));
 				engine.current?.camera.goToFrame(engine.current.slide);
 			} else if (k === "Escape") {
-				if (showGrid) setShowGrid(false);
+				if (showHelp) setShowHelp(false);
+				else if (showGrid) setShowGrid(false);
 				else if (tool) setTool(null);
 				else onExit();
 			} else if (k === "n" || k === "N") setShowNotes((v) => !v);
@@ -117,6 +153,8 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 			else if (k === "p" || k === "P") toggleTool("pen");
 			else if (k === "l" || k === "L") toggleTool("laser");
 			else if (k === "k" || k === "K") keepInk();
+			else if (k === "e" || k === "E") toggleEdit();
+			else if (k === "?" || k === "h" || k === "H") setShowHelp((v) => !v);
 			else handled = false;
 			if (handled) {
 				e.preventDefault();
@@ -125,19 +163,20 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 		};
 		window.addEventListener("keydown", onKey, true);
 		return () => window.removeEventListener("keydown", onKey, true);
-	}, [shape.join(","), onExit, showGrid, tool, keepInk]);
+	}, [shape.join(","), onExit, showGrid, showHelp, tool, editing, keepInk]);
 
 	return (
-		<div className={`canvas-deck-presenter${tool ? ` is-${tool}` : ""}`} ref={root}>
+		<div className={`canvas-deck-presenter${tool ? ` is-${tool}` : ""}${editing ? " is-editing" : ""}`} ref={root} onPointerMove={wake}>
 			<SlideCanvas
 				key={slide.id}
 				initial={slide.data}
 				images={images}
 				notes={notes}
 				presenting
+				editing={editing}
 				theme={theme}
 				onChange={(data) => {
-					if (keeping.current) onSlideData?.(slide.id, data);
+					if (keeping.current || editingRef.current) onSlideData?.(slide.id, data);
 					keeping.current = false;
 				}}
 				onReady={onReady}
@@ -145,7 +184,7 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 			/>
 			<InkLayer engine={engine} tool={tool} strokes={strokes} onStroke={(s) => setStrokes((all) => [...all, s])} />
 			{showNotes && speakerNotes && <div className="canvas-deck-present-notes">{speakerNotes}</div>}
-			<div className="canvas-deck-present-bar">
+			<div className={`canvas-deck-present-bar${awake || editing ? " is-awake" : ""}`}>
 				<button aria-label="Previous" onClick={() => setPos((p) => prev(p, shape))}>‹</button>
 				<span>
 					{pos.slide + 1} / {deck.slides.length}
@@ -163,9 +202,27 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 						Keep ink
 					</button>
 				)}
+				<button aria-label="Edit" title="Edit the slide (E)" className={editing ? "is-active" : ""} onClick={toggleEdit}>
+					{editing ? "Done" : "Edit"}
+				</button>
 				<button aria-label="All slides" title="All slides (G)" onClick={() => setShowGrid((v) => !v)}>▦</button>
+				<button aria-label="Help" title="Keys (?)" onClick={() => setShowHelp((v) => !v)}>?</button>
 				<button aria-label="Exit" onClick={onExit}>✕</button>
 			</div>
+			{showHelp && (
+				<div className="canvas-deck-help" onClick={() => setShowHelp(false)}>
+					<table>
+						<tbody>
+							{HELP.map(([k, what]) => (
+								<tr key={k}>
+									<td><kbd>{k}</kbd></td>
+									<td>{what}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			)}
 			{showGrid && (
 				<div className="canvas-deck-grid" aria-label="Slide grid">
 					{deck.slides.map((s, i) => (
@@ -188,3 +245,17 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 		</div>
 	);
 }
+
+const HELP: [string, string][] = [
+	["→ Space", "Next view or slide"],
+	["←", "Back"],
+	["Home", "Start frame"],
+	["G", "All slides and views"],
+	["N", "Speaker notes"],
+	["P", "Pen"],
+	["L", "Laser pointer"],
+	["K", "Keep the ink on the slide"],
+	["E", "Edit the slide (Esc to stop)"],
+	["?", "This help"],
+	["Esc", "Close, or exit"],
+];
