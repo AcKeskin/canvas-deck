@@ -17,7 +17,7 @@ Canvas Deck makes slide decks in Obsidian where each slide is an infinite canvas
 - Templates: save a slide as a template and start new slides from it.
 - PDF export: one page per start frame, optionally one per saved view, optionally with speaker notes.
 - Offline fonts: the hand-drawn fonts ship with the plugin.
-- Works on mobile (touch and pen).
+- Should work on mobile (touch and pen), but not tested on a real device yet.
 
 ## Install
 
