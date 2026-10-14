@@ -70,6 +70,8 @@ Run **New deck** from the command palette or click the ribbon icon. **New demo d
 | L | Laser pointer |
 | K | Keep the ink on the slide (otherwise it goes when you leave the slide) |
 | G | Grid of all slides and views, to jump to |
+| E | Edit the slide with the full tools (Esc to stop) |
+| ? | Show all keys |
 | Esc | Close the grid or tool first, then exit |
 
 Drag and scroll to move freely while presenting.
