@@ -13,6 +13,7 @@ import { addView, CameraController, type CameraHost } from "./camera";
 import { codeSource, CODE_LINK, isCodeLink } from "./code-cards";
 import { MotionSnapshot } from "./motion-snapshot";
 import { formatNoteLink } from "./note-links";
+import { allowWebEmbed } from "./web-embeds";
 import { newId, type Bounds, type SlideData } from "./slide-data";
 import { mimeOf, pruneImages, unsavedFileIds } from "./vault-images";
 
@@ -140,21 +141,20 @@ export class CanvasEngine {
 
 	/** Puts a live web page on the canvas. The link keeps the URL as typed; the iframe src comes from `webEmbedSrc`. */
 	insertWebEmbed(url: string, at?: { x: number; y: number }) {
-		this.insertEmbed(url.trim(), 800, 450, at);
-	}
-
-	private insertEmbed(link: string, width: number, height: number, at?: { x: number; y: number }) {
-		const c = at ?? this.viewCenter();
-		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - width / 2, y: c.y - height / 2, width, height }]);
-		const el = { ...rect, type: "embeddable", link, roundness: null } as ExcalidrawElement;
-		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
+		const link = url.trim();
+		allowWebEmbed(link);
+		this.insertEmbed(link, 800, 450, at);
 	}
 
 	/** Puts a code card on the canvas, centered at a scene point (default: view center). */
 	insertCodeCard(source: string, at?: { x: number; y: number }) {
+		this.insertEmbed(CODE_LINK, 480, 320, at, { source });
+	}
+
+	private insertEmbed(link: string, width: number, height: number, at?: { x: number; y: number }, customData?: Record<string, unknown>) {
 		const c = at ?? this.viewCenter();
-		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - 240, y: c.y - 160, width: 480, height: 320 }]);
-		const el = { ...rect, type: "embeddable", link: CODE_LINK, roundness: null, customData: { source } } as ExcalidrawElement;
+		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - width / 2, y: c.y - height / 2, width, height }]);
+		const el = { ...rect, type: "embeddable", link, roundness: null, ...(customData && { customData }) } as ExcalidrawElement;
 		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
 	}
 

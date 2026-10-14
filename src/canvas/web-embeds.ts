@@ -1,3 +1,19 @@
+/** iframe sandbox for web embeds: no top navigation, so a page can't take over Obsidian or the exported deck. */
+export const WEB_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation";
+
+// Links shown live: embeds already on a slide or added with "Insert web embed". A pasted link stays a plain link.
+const live = new Set<string>();
+
+/** Lets a link show as a live page. */
+export function allowWebEmbed(link: string) {
+	live.add(link);
+}
+
+/** True for web links that may show as live pages. */
+export function isLiveWebLink(link: string | null | undefined): boolean {
+	return isWebLink(link) && live.has(link);
+}
+
 /** True for http and https links. Web embeds keep the URL as typed in the element link. */
 export function isWebLink(link: string | null | undefined): link is string {
 	const url = parse(link);

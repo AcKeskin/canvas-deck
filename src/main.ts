@@ -48,7 +48,7 @@ export default class CanvasDeckPlugin extends Plugin {
 				new Notice("Select a code card first.");
 				return;
 			}
-			v.engine.editCode();
+			void v.engine.editCode();
 		});
 		this.deckCommand("insert-web-embed", "Insert web embed", (v) => {
 			new UrlPrompt(this.app, (url) => {
@@ -61,10 +61,10 @@ export default class CanvasDeckPlugin extends Plugin {
 			}).open();
 		});
 		this.deckCommand("export-pdf", "Export deck to PDF", (v) => {
-			if (v.file) exportDeckPdf(this.app, v.file, parseDeck(v.getViewData()), vaultImageStore(this.app, () => v.file?.path));
+			if (v.file) void exportDeckPdf(this.app, v.file, parseDeck(v.getViewData()), vaultImageStore(this.app, () => v.file?.path));
 		});
 		this.deckCommand("export-html", "Export deck to HTML", (v) => {
-			if (v.file) exportDeckHtml(this.app, v.file, parseDeck(v.getViewData()), vaultImageStore(this.app, () => v.file?.path));
+			if (v.file) void exportDeckHtml(this.app, v.file, parseDeck(v.getViewData()), vaultImageStore(this.app, () => v.file?.path));
 		});
 		this.deckCommand("link-selection", "Link selection to slide or view", (v) => {
 			const engine = v.engine;

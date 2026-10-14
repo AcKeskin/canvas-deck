@@ -51,6 +51,11 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 		wake();
 		return () => window.clearTimeout(awakeTimer.current);
 	}, [wake]);
+	// A click into an embed gives it the keys; moving back out returns them.
+	const onPointerMove = useCallback(() => {
+		wake();
+		if (document.activeElement instanceof HTMLIFrameElement) document.activeElement.blur();
+	}, [wake]);
 	const shape = deck.slides.map((s) => s.data.views.length);
 	const slide = deck.slides[pos.slide];
 	// The current view's notes if it has any, else the slide's.
@@ -166,7 +171,7 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 	}, [shape.join(","), onExit, showGrid, showHelp, tool, editing, keepInk]);
 
 	return (
-		<div className={`canvas-deck-presenter${tool ? ` is-${tool}` : ""}${editing ? " is-editing" : ""}`} ref={root} onPointerMove={wake}>
+		<div className={`canvas-deck-presenter${tool ? ` is-${tool}` : ""}${editing ? " is-editing" : ""}`} ref={root} onPointerMove={onPointerMove}>
 			<SlideCanvas
 				key={slide.id}
 				initial={slide.data}

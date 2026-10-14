@@ -2,13 +2,14 @@ import { Excalidraw } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI, ExcalidrawProps } from "@excalidraw/excalidraw/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseDeckLink } from "../deck/deck-links";
-import { withCodeCards } from "./CodeCard";
+import { codeCardProps } from "./CodeCard";
 import { combineEmbedProps } from "./embed-props";
 import { CanvasEngine, type CodeEditor, type ImageStore, type NoteRenderer } from "./engine";
 import { FrameHandles } from "./FrameHandles";
 import { noteEmbedProps } from "./NoteEmbed";
 import type { SlideData } from "./slide-data";
 import { webEmbedProps } from "./WebEmbed";
+import { allowWebEmbed, isWebLink } from "./web-embeds";
 
 export interface SlideCanvasProps {
 	initial: SlideData;
@@ -38,8 +39,10 @@ export function SlideCanvas({ initial, images, notes, code, presenting, editing,
 	const host = useRef<HTMLDivElement>(null);
 	const down = useRef<{ x: number; y: number } | null>(null);
 	const [cam, setCam] = useState<{ scrollX: number; scrollY: number; zoom: number } | null>(null);
+	// Web embeds saved on the slide stay live; Excalidraw checks them on load.
+	useState(() => initial.elements.forEach((e) => e.type === "embeddable" && !e.isDeleted && isWebLink(e.link) && allowWebEmbed(e.link)));
 	const embedProps = useMemo(
-		() => withCodeCards(combineEmbedProps(noteEmbedProps(notes), webEmbedProps), (id) => engine.current?.editCode(id)),
+		() => combineEmbedProps(noteEmbedProps(notes), webEmbedProps, codeCardProps((id) => void engine.current?.editCode(id))),
 		[notes],
 	);
 	// Read at render: the parent re-renders after every slide change, frame edits included.
