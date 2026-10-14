@@ -36,6 +36,8 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 	const [strokes, setStrokes] = useState<Stroke[]>([]);
 	const shape = deck.slides.map((s) => s.data.views.length);
 	const slide = deck.slides[pos.slide];
+	// The current view's notes if it has any, else the slide's.
+	const speakerNotes = (pos.view >= 0 && slide.data.views[pos.view]?.notes) || slide.notes;
 
 	// Moves the camera when the position changes inside the same slide.
 	const lastSlide = useRef(pos.slide);
@@ -142,7 +144,7 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 				onDeckLink={onDeckLink}
 			/>
 			<InkLayer engine={engine} tool={tool} strokes={strokes} onStroke={(s) => setStrokes((all) => [...all, s])} />
-			{showNotes && slide.notes && <div className="canvas-deck-present-notes">{slide.notes}</div>}
+			{showNotes && speakerNotes && <div className="canvas-deck-present-notes">{speakerNotes}</div>}
 			<div className="canvas-deck-present-bar">
 				<button aria-label="Previous" onClick={() => setPos((p) => prev(p, shape))}>‹</button>
 				<span>

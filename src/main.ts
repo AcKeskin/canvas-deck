@@ -9,13 +9,18 @@ import { demoDeck } from "./dev/demo-deck";
 import { useLocalFonts } from "./obsidian/fonts";
 import { exportDeckPdf } from "./obsidian/pdf-export";
 import { vaultImageStore } from "./obsidian/vault-image-store";
+import { CanvasDeckSettingTab, DEFAULT_SETTINGS, type CanvasDeckSettings } from "./settings";
+import { loadTemplate, saveTemplate, TemplatePicker, templateFiles } from "./templates";
 
 export default class CanvasDeckPlugin extends Plugin {
 	/** Deck notes the user chose to see as markdown this session. */
 	private asMarkdown = new Set<string>();
+	settings: CanvasDeckSettings = { ...DEFAULT_SETTINGS };
 
 	async onload() {
 		if (this.manifest.dir) useLocalFonts(this.app, this.manifest.dir);
+		this.settings = { ...DEFAULT_SETTINGS, ...(await this.loadData()) };
+		this.addSettingTab(new CanvasDeckSettingTab(this.app, this, this.settings, () => this.saveData(this.settings)));
 		this.registerView(DECK_VIEW, (leaf) => new DeckView(leaf));
 		this.addRibbonIcon("presentation", "New canvas deck", () => this.newDeck(createDeck(), "Untitled deck"));
 
@@ -45,6 +50,26 @@ export default class CanvasDeckPlugin extends Plugin {
 				return;
 			}
 			new LinkPicker(this.app, linkTargets(v.deck), (link) => engine.linkSelection(link)).open();
+		});
+		this.deckCommand("save-template", "Save slide as template", async (v) => {
+			const slide = v.handle?.currentSlide();
+			if (!slide) return;
+			const file = await saveTemplate(this.app, this.settings.templateFolder, slide);
+			new Notice(`Saved template ${file.path}`);
+		});
+		this.deckCommand("new-from-template", "New slide from template", (v) => {
+			const files = templateFiles(this.app, this.settings.templateFolder);
+			if (!files.length) {
+				new Notice(`No templates in "${this.settings.templateFolder}" yet. Use "Save slide as template" first.`);
+				return;
+			}
+			new TemplatePicker(this.app, files, async (f) => {
+				try {
+					v.handle?.insertSlide(await loadTemplate(this.app, f));
+				} catch (e) {
+					new Notice(`Canvas Deck: cannot read template: ${(e as Error).message}`);
+				}
+			}).open();
 		});
 		this.deckCommand("open-markdown", "Open deck as markdown", (v) => {
 			if (!v.file) return;

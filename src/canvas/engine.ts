@@ -12,7 +12,7 @@ import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@e
 import { addView, CameraController, type CameraHost } from "./camera";
 import { MotionSnapshot } from "./motion-snapshot";
 import { formatNoteLink } from "./note-links";
-import { newId, type SlideData } from "./slide-data";
+import { newId, type Bounds, type SlideData } from "./slide-data";
 import { mimeOf, pruneImages, unsavedFileIds } from "./vault-images";
 
 /** Where image bytes live. Obsidian vault in the app, a fake in tests. */
@@ -133,6 +133,14 @@ export class CanvasEngine {
 		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
 	}
 
+	/** Re-measures text once fonts have loaded; text measured with a fallback font looks cut off. */
+	refreshText() {
+		const els = this.api.getSceneElements();
+		const fresh = restoreElements(els, null, { refreshDimensions: true });
+		const changed = fresh.some((e, i) => e.type === "text" && (Math.abs(e.width - els[i].width) > 0.5 || Math.abs(e.height - els[i].height) > 0.5));
+		if (changed) this.api.updateScene({ elements: fresh, captureUpdate: CaptureUpdateAction.NEVER });
+	}
+
 	/** Adds elements on top. Missing fields get Excalidraw's defaults. They save like any edit. */
 	addElements(elements: object[]) {
 		const added = restoreElements(elements as any, null);
@@ -174,6 +182,10 @@ export class CanvasEngine {
 
 	setViews(views: SlideData["views"]) {
 		this.update({ ...this._slide, views });
+	}
+
+	setFrame(frame: Bounds) {
+		this.update({ ...this._slide, frame });
 	}
 
 	private viewCenter() {
