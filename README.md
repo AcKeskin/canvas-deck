@@ -21,7 +21,7 @@ Canvas Deck makes slide decks in Obsidian where each slide is an infinite canvas
 - Templates: save a slide as a template and start new slides from it.
 - PDF export: one page per start frame, optionally one per saved view, optionally with speaker notes.
 - HTML export: one file that presents the deck in any browser, with speaker notes and live embeds.
-- Offline fonts: the hand-drawn fonts ship with the plugin.
+- Offline fonts: the hand-drawn fonts ship inside the plugin and are written to its folder on first load.
 - Should work on mobile (touch and pen), but not tested on a real device yet.
 
 ## Screenshots
@@ -38,8 +38,8 @@ Taken in the browser test harness, so they use plain styles instead of your Obsi
 
 The plugin is not in the community plugin store yet, and there is no BRAT setup. Install it by hand:
 
-1. Build it (see Development), or download `main.js`, `styles.css`, `manifest.json` and the `fonts/` folder from a GitHub release when there is one.
-2. Copy those four into `<vault>/.obsidian/plugins/canvas-deck/`.
+1. Build it (see Development), or download `main.js`, `styles.css` and `manifest.json` from the latest GitHub release.
+2. Copy those three into `<vault>/.obsidian/plugins/canvas-deck/`. The fonts come with `main.js`.
 3. In Obsidian, go to Settings > Community plugins and enable **Canvas Deck**.
 
 ## Usage

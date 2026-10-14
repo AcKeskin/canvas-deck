@@ -1,7 +1,7 @@
 import esbuild from "esbuild";
 import builtins from "builtin-modules";
 import { readFileSync, writeFileSync } from "node:fs";
-import { copyFonts } from "./scripts/copy-fonts.mjs";
+import { copyFonts, fontsBase64 } from "./scripts/copy-fonts.mjs";
 
 const prod = process.argv[2] === "production";
 
@@ -14,6 +14,15 @@ const copyStyles = {
 			writeFileSync("styles.css", css + "\n" + readFileSync("src/deck/deck.css", "utf8"));
 			copyFonts("fonts");
 		});
+	},
+};
+
+// Store installs get only main.js, manifest.json and styles.css, so main.js carries the fonts too.
+const bundleFonts = {
+	name: "bundle-fonts",
+	setup(build) {
+		build.onResolve({ filter: /^virtual:fonts$/ }, () => ({ path: "fonts", namespace: "virtual" }));
+		build.onLoad({ filter: /.*/, namespace: "virtual" }, () => ({ contents: `export const FONTS = ${JSON.stringify(fontsBase64())};`, loader: "js" }));
 	},
 };
 
@@ -30,7 +39,7 @@ const ctx = await esbuild.context({
 	define: { "process.env.NODE_ENV": prod ? '"production"' : '"development"' },
 	conditions: [prod ? "production" : "development"],
 	outfile: "main.js",
-	plugins: [copyStyles],
+	plugins: [copyStyles, bundleFonts],
 });
 
 if (prod) {

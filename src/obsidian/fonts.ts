@@ -16,3 +16,25 @@ export function useLocalFonts(app: App, pluginDir: string) {
 	const url = app.vault.adapter.getResourcePath(normalizePath(pluginDir)).replace(/\?.*$/, "");
 	window.EXCALIDRAW_ASSET_PATH = url.replace(/\/*$/, "/");
 }
+
+/**
+ * Writes bundled font files (`<Family>/<file>` -> base64) missing from `<pluginDir>/fonts`.
+ * Store installs ship without the fonts folder; manual installs already have it and write nothing.
+ */
+export async function installFonts(app: App, pluginDir: string, files: Record<string, string>) {
+	const adapter = app.vault.adapter;
+	for (const [rel, base64] of Object.entries(files)) {
+		const path = normalizePath(`${pluginDir}/fonts/${rel}`);
+		if (await adapter.exists(path)) continue;
+		const dir = path.slice(0, path.lastIndexOf("/"));
+		if (!(await adapter.exists(dir))) await adapter.mkdir(dir);
+		await adapter.writeBinary(path, base64ToBytes(base64));
+	}
+}
+
+function base64ToBytes(base64: string): ArrayBuffer {
+	const bin = atob(base64);
+	const bytes = new Uint8Array(bin.length);
+	for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+	return bytes.buffer;
+}
