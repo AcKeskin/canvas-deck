@@ -1,6 +1,7 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { parseDeckLink } from "../deck/deck-links";
 import { CanvasEngine, type ImageStore, type NoteRenderer } from "./engine";
 import { noteEmbedProps } from "./NoteEmbed";
 import type { Bounds, SlideData } from "./slide-data";
@@ -15,12 +16,15 @@ export interface SlideCanvasProps {
 	theme?: "light" | "dark";
 	onChange(slide: SlideData): void;
 	onReady?(engine: CanvasEngine): void;
+	/** Called when a `#cdeck:` link is followed. Other links open as usual. */
+	onDeckLink?(slideId: string, viewId?: string): void;
 }
 
 /** One slide as an Excalidraw canvas, with the 16:9 start frame drawn on top. */
-export function SlideCanvas({ initial, images, notes, presenting, theme, onChange, onReady }: SlideCanvasProps) {
+export function SlideCanvas({ initial, images, notes, presenting, theme, onChange, onReady, onDeckLink }: SlideCanvasProps) {
 	const engine = useRef<CanvasEngine | null>(null);
 	const host = useRef<HTMLDivElement>(null);
+	const down = useRef<{ x: number; y: number } | null>(null);
 	const [frameRect, setFrameRect] = useState<Bounds | null>(null);
 	const embedProps = useMemo(() => noteEmbedProps(notes), [notes]);
 
@@ -48,8 +52,25 @@ export function SlideCanvas({ initial, images, notes, presenting, theme, onChang
 		[images, initial, onChange, onReady, updateFrame, theme],
 	);
 
+	// In present mode a click or tap anywhere on a linked element follows it.
+	// Excalidraw does this on desktop only, so taps are handled here for all devices.
+	const onPointerUp = (e: React.PointerEvent) => {
+		const start = down.current;
+		down.current = null;
+		if (!presenting || !start || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) return;
+		const target = parseDeckLink(engine.current?.linkAt(e.clientX, e.clientY));
+		if (target) onDeckLink?.(target.slideId, target.viewId);
+	};
+
 	return (
-		<div ref={host} className={`canvas-deck-slide${presenting ? " is-presenting" : ""}`} style={{ position: "relative", width: "100%", height: "100%" }}>
+		<div
+			ref={host}
+			className={`canvas-deck-slide${presenting ? " is-presenting" : ""}`}
+			style={{ position: "relative", width: "100%", height: "100%" }}
+			// A second finger means pinch, not a tap.
+			onPointerDownCapture={(e) => (down.current = e.isPrimary ? { x: e.clientX, y: e.clientY } : null)}
+			onPointerUpCapture={onPointerUp}
+		>
 			<Excalidraw
 				excalidrawAPI={onApi}
 				initialData={{ elements: initial.elements, scrollToContent: false }}
@@ -58,6 +79,13 @@ export function SlideCanvas({ initial, images, notes, presenting, theme, onChang
 				zenModeEnabled={presenting}
 				theme={theme}
 				{...embedProps}
+				onLinkOpen={(el, event) => {
+					const target = parseDeckLink(el.link);
+					if (!target) return embedProps.onLinkOpen?.(el, event);
+					event.preventDefault();
+					// Present mode follows links in onPointerUp.
+					if (!presenting) onDeckLink?.(target.slideId, target.viewId);
+				}}
 			/>
 			{frameRect && !presenting && (
 				<div

@@ -9,6 +9,7 @@ import { perfSlideSkeletons } from "../../src/dev/perf-slide";
 import { demoDeck } from "../../src/dev/demo-deck";
 import { DeckEditor, type DeckHandle } from "../../src/deck/DeckEditor";
 import { parseDeck, serializeDeck } from "../../src/deck/deck-format";
+import { deckLink } from "../../src/deck/deck-links";
 import type { Deck } from "../../src/deck/deck-model";
 import type { PdfOptions } from "../../src/deck/pdf-plan";
 import { renderDeckPdf } from "../../src/deck/pdf-render";
@@ -65,6 +66,7 @@ declare global {
 			parse: typeof parseDeck;
 			/** PDF of the current deck, base64. */
 			pdf(opts: PdfOptions): Promise<string>;
+			deckLink: typeof deckLink;
 		};
 	}
 }
@@ -77,6 +79,7 @@ window.harness = {
 	freeDrawPath: getFreeDrawSvgPath,
 	serialize: serializeDeck,
 	parse: parseDeck,
+	deckLink,
 	pdf: async (opts) => {
 		const bytes = await renderDeckPdf(window.harness.deck!, store, opts);
 		let s = "";

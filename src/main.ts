@@ -1,7 +1,8 @@
-import { FuzzySuggestModal, MarkdownView, normalizePath, Plugin, TFile, type App, type WorkspaceLeaf } from "obsidian";
+import { FuzzySuggestModal, MarkdownView, Notice, normalizePath, Plugin, TFile, type App, type WorkspaceLeaf } from "obsidian";
 import { isNotePath } from "./canvas/note-links";
 import { isImagePath } from "./canvas/vault-images";
 import { DECK_FLAG, parseDeck, serializeDeck } from "./deck/deck-format";
+import { linkTargets, type LinkTarget } from "./deck/deck-links";
 import { createDeck, type Deck } from "./deck/deck-model";
 import { DECK_VIEW, DeckView } from "./deck/deck-view";
 import { demoDeck } from "./dev/demo-deck";
@@ -35,6 +36,15 @@ export default class CanvasDeckPlugin extends Plugin {
 		});
 		this.deckCommand("export-pdf", "Export deck to PDF", (v) => {
 			if (v.file) exportDeckPdf(this.app, v.file, parseDeck(v.getViewData()), vaultImageStore(this.app, () => v.file?.path));
+		});
+		this.deckCommand("link-selection", "Link selection to slide or view", (v) => {
+			const engine = v.engine;
+			if (!engine || !v.deck) return;
+			if (!engine.hasSelection()) {
+				new Notice("Select something to link first.");
+				return;
+			}
+			new LinkPicker(this.app, linkTargets(v.deck), (link) => engine.linkSelection(link)).open();
 		});
 		this.deckCommand("open-markdown", "Open deck as markdown", (v) => {
 			if (!v.file) return;
@@ -121,5 +131,25 @@ class FilePicker extends FuzzySuggestModal<TFile> {
 	}
 	onChooseItem(f: TFile) {
 		this.onPick(f);
+	}
+}
+
+class LinkPicker extends FuzzySuggestModal<LinkTarget | null> {
+	constructor(
+		app: App,
+		private targets: LinkTarget[],
+		private onPick: (link: string | null) => void,
+	) {
+		super(app);
+		this.setPlaceholder("Link to slide or view");
+	}
+	getItems() {
+		return [...this.targets, null];
+	}
+	getItemText(t: LinkTarget | null) {
+		return t ? t.label : "Remove link";
+	}
+	onChooseItem(t: LinkTarget | null) {
+		this.onPick(t?.link ?? null);
 	}
 }

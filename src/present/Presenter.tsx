@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CanvasEngine, ImageStore, NoteRenderer } from "../canvas/engine";
 import { SlideCanvas } from "../canvas/SlideCanvas";
+import { resolveDeckLink } from "../deck/deck-links";
 import type { Deck } from "../deck/deck-model";
 import { next, prev, type Position } from "./stepper";
 
@@ -39,9 +40,19 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 		(e: CanvasEngine) => {
 			engine.current = e;
 			lastSlide.current = pos.slide;
+			// A deck link can land on a view of another slide.
+			if (pos.view >= 0) e.camera.goToView(e.slide, e.slide.views[pos.view].id, { animate: false });
 			onEngine?.(e);
 		},
-		[pos.slide, onEngine],
+		[pos.slide, pos.view, onEngine],
+	);
+
+	const onDeckLink = useCallback(
+		(slideId: string, viewId?: string) => {
+			const p = resolveDeckLink(deck, slideId, viewId);
+			if (p) setPos(p);
+		},
+		[deck],
 	);
 
 	useEffect(() => {
@@ -89,6 +100,7 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 				theme={theme}
 				onChange={() => {}}
 				onReady={onReady}
+				onDeckLink={onDeckLink}
 			/>
 			{showNotes && slide.notes && <div className="canvas-deck-present-notes">{slide.notes}</div>}
 			<div className="canvas-deck-present-bar">

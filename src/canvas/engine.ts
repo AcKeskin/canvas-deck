@@ -1,4 +1,11 @@
-import { convertToExcalidrawElements, getSceneVersion, viewportCoordsToSceneCoords } from "@excalidraw/excalidraw";
+import {
+	CaptureUpdateAction,
+	convertToExcalidrawElements,
+	getCommonBounds,
+	getSceneVersion,
+	newElementWith,
+	viewportCoordsToSceneCoords,
+} from "@excalidraw/excalidraw";
 import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { addView, CameraController, type CameraHost } from "./camera";
@@ -128,6 +135,30 @@ export class CanvasEngine {
 	/** Scene point under a screen point. */
 	sceneAt(clientX: number, clientY: number) {
 		return viewportCoordsToSceneCoords({ clientX, clientY }, this.api.getAppState());
+	}
+
+	hasSelection(): boolean {
+		return Object.values(this.api.getAppState().selectedElementIds).some(Boolean);
+	}
+
+	/** Sets (or clears, with null) the link on every selected element. */
+	linkSelection(link: string | null) {
+		const ids = this.api.getAppState().selectedElementIds;
+		const elements = this.api.getSceneElements().map((e) => (ids[e.id] ? newElementWith(e, { link }) : e));
+		this.api.updateScene({ elements, captureUpdate: CaptureUpdateAction.IMMEDIATELY });
+	}
+
+	/** Link of the topmost linked element under a screen point, if any. */
+	linkAt(clientX: number, clientY: number): string | null {
+		const p = this.sceneAt(clientX, clientY);
+		const elements = this.api.getSceneElements();
+		for (let i = elements.length - 1; i >= 0; i--) {
+			const e = elements[i];
+			if (!e.link) continue;
+			const [x1, y1, x2, y2] = getCommonBounds([e]);
+			if (p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2) return e.link;
+		}
+		return null;
 	}
 
 	saveCurrentView(name: string) {
