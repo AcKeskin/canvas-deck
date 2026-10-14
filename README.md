@@ -14,6 +14,7 @@ Planning docs: `.claude/visions`, `.claude/specs`, `.claude/plans`.
 - Top: **+ Save view** saves what you see as a step. Click a view to fly to it.
 - Bottom: speaker notes. They are plain text in the note, so search finds them.
 - **▶ Present**: → / Space next, ← back, Home start frame, N notes, Esc exit. Drag and scroll to move freely.
+- While presenting: P pen, L laser pointer, K keeps the ink on the slide (otherwise it goes when you leave the slide), G all slides and views to jump to. Esc turns these off first.
 - A deck is a markdown note with `canvas-deck` frontmatter. **Open deck as markdown** shows the raw note.
 
 ## Dev

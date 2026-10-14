@@ -1,4 +1,4 @@
-import { convertToExcalidrawElements, getSceneVersion, viewportCoordsToSceneCoords } from "@excalidraw/excalidraw";
+import { convertToExcalidrawElements, getSceneVersion, restoreElements, viewportCoordsToSceneCoords } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { addView, CameraController, type CameraHost } from "./camera";
@@ -107,6 +107,12 @@ export class CanvasEngine {
 		]);
 		this._slide = { ...this._slide, images: { ...this._slide.images, [id]: path } };
 		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
+	}
+
+	/** Adds elements on top. Missing fields get Excalidraw's defaults. They save like any edit. */
+	addElements(elements: object[]) {
+		const added = restoreElements(elements as any, null);
+		this.api.updateScene({ elements: [...this.api.getSceneElements(), ...added] });
 	}
 
 	/** Scene point under a screen point. */
