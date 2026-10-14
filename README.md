@@ -14,11 +14,12 @@ Planning docs: `.claude/visions`, `.claude/specs`, `.claude/plans`.
 - Top: **+ Save view** saves what you see as a step. Click a view to fly to it.
 - Bottom: speaker notes. They are plain text in the note, so search finds them.
 - **▶ Present**: → / Space next, ← back, Home start frame, N notes, Esc exit. Drag and scroll to move freely.
+- **Export deck to PDF** saves `<deck>.pdf` next to the note: one page per start frame, and optionally one per saved view. Speaker notes, if picked, are printed under the start frame.
 - A deck is a markdown note with `canvas-deck` frontmatter. **Open deck as markdown** shows the raw note.
 
 ## Dev
 
-- `npm run build` builds `main.js` and `styles.css`. Copy them with `manifest.json` into `<vault>/.obsidian/plugins/canvas-deck/`.
+- `npm run build` builds `main.js`, `styles.css` and the `fonts/` folder. Copy all of them with `manifest.json` into `<vault>/.obsidian/plugins/canvas-deck/`. The fonts let text draw offline; without the folder, fonts load from the web. Chinese, Japanese and Korean text has no offline hand-drawn font and uses a system font when offline.
 - `npm test` runs unit tests.
 - `npm run test:e2e` runs browser tests on a test page (`npm run harness` to open it).
 

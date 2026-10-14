@@ -1,8 +1,10 @@
 node_modules/
 main.js
 styles.css
+fonts/
 *.map
 test-results/
 playwright-report/
 dev/dist/
 .claude/autonomy/
+dev/harness/public/

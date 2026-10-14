@@ -1,15 +1,19 @@
 import { FuzzySuggestModal, MarkdownView, normalizePath, Plugin, TFile, type App, type WorkspaceLeaf } from "obsidian";
 import { isImagePath } from "./canvas/vault-images";
-import { DECK_FLAG, serializeDeck } from "./deck/deck-format";
+import { DECK_FLAG, parseDeck, serializeDeck } from "./deck/deck-format";
 import { createDeck, type Deck } from "./deck/deck-model";
 import { DECK_VIEW, DeckView } from "./deck/deck-view";
 import { demoDeck } from "./dev/demo-deck";
+import { useLocalFonts } from "./obsidian/fonts";
+import { exportDeckPdf } from "./obsidian/pdf-export";
+import { vaultImageStore } from "./obsidian/vault-image-store";
 
 export default class CanvasDeckPlugin extends Plugin {
 	/** Deck notes the user chose to see as markdown this session. */
 	private asMarkdown = new Set<string>();
 
 	async onload() {
+		if (this.manifest.dir) useLocalFonts(this.app, this.manifest.dir);
 		this.registerView(DECK_VIEW, (leaf) => new DeckView(leaf));
 		this.addRibbonIcon("presentation", "New canvas deck", () => this.newDeck(createDeck(), "Untitled deck"));
 
@@ -22,6 +26,9 @@ export default class CanvasDeckPlugin extends Plugin {
 		this.deckCommand("save-view", "Save current view", (v) => v.engine?.saveCurrentView(`View ${(v.engine?.slide.views.length ?? 0) + 1}`));
 		this.deckCommand("insert-image", "Insert vault image", (v) => {
 			new ImagePicker(this.app, (f) => v.engine?.insertImage(f.path)).open();
+		});
+		this.deckCommand("export-pdf", "Export deck to PDF", (v) => {
+			if (v.file) exportDeckPdf(this.app, v.file, parseDeck(v.getViewData()), vaultImageStore(this.app, () => v.file?.path));
 		});
 		this.deckCommand("open-markdown", "Open deck as markdown", (v) => {
 			if (!v.file) return;

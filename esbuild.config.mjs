@@ -1,16 +1,18 @@
 import esbuild from "esbuild";
 import builtins from "builtin-modules";
 import { readFileSync, writeFileSync } from "node:fs";
+import { copyFonts } from "./scripts/copy-fonts.mjs";
 
 const prod = process.argv[2] === "production";
 
-// styles.css = Excalidraw stylesheet + ours.
+// styles.css = Excalidraw stylesheet + ours. fonts/ = canvas fonts, so text works offline.
 const copyStyles = {
 	name: "copy-styles",
 	setup(build) {
 		build.onEnd(() => {
 			const css = readFileSync(`node_modules/@excalidraw/excalidraw/dist/${prod ? "prod" : "dev"}/index.css`, "utf8");
 			writeFileSync("styles.css", css + "\n" + readFileSync("src/deck/deck.css", "utf8"));
+			copyFonts("fonts");
 		});
 	},
 };
