@@ -63,6 +63,16 @@ test("editing the source reloads the card", async ({ page }) => {
 	expect(await page.evaluate(() => window.harness.engine!.slide.elements.find((e) => e.type === "embeddable")!.customData?.source)).toBe("<p>Edited</p>");
 });
 
+test("the link on a selected card opens the editor", async ({ page }) => {
+	await page.goto("/");
+	await insertCard(page);
+	await activate(page);
+	await page.locator("a.excalidraw-hyperlinkContainer-link").click();
+	await expect.poll(() => page.evaluate(() => window.harness.codeEdits)).toEqual([COUNTER]);
+	expect(page.url()).not.toContain("canvas-deck-code");
+	expect(page.context().pages()).toHaveLength(1);
+});
+
 test("code card is interactive in present mode", async ({ page }) => {
 	await page.goto("/?deck");
 	await insertCard(page);
