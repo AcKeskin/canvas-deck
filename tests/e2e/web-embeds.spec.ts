@@ -57,4 +57,21 @@ test("in present mode the web embed takes clicks", async ({ page }) => {
 	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 	await expect(page.frameLocator(".canvas-deck-presenter iframe.canvas-deck-web").getByRole("button")).toHaveText("clicked");
 	await expect(page.locator(".canvas-deck-presenter")).toBeVisible();
+
+	// Moving out of the embed gives the keys back.
+	await page.mouse.move(5, 5);
+	await page.keyboard.press("ArrowRight");
+	await expect(page.locator(".canvas-deck-present-bar")).toContainText("2 /");
+});
+
+test("a pasted link stays a plain link", async ({ page }) => {
+	await open(page, "/");
+	await page.locator(".excalidraw").click({ position: { x: 400, y: 300 } });
+	await page.evaluate(() => {
+		const data = new DataTransfer();
+		data.setData("text/plain", location.origin + "/embed-test.html");
+		document.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true }));
+	});
+	await page.waitForFunction(() => window.harness.engine!.slide.elements.length > 0);
+	await expect(page.locator("iframe.canvas-deck-web")).toHaveCount(0);
 });

@@ -1,4 +1,5 @@
 import { codeSrcdoc } from "../canvas/code-cards";
+import { WEB_SANDBOX } from "../canvas/web-embeds";
 import type { HtmlPage, Overlay } from "./html-plan";
 
 /** Makes text safe inside HTML text and quoted attributes. */
@@ -42,7 +43,7 @@ function overlayHtml(o: Overlay, notes: Map<string, string>): string {
 	const style = `style="left: ${o.left}%; top: ${o.top}%; width: ${o.width}%; height: ${o.height}%"`;
 	// iframes get their src when their page shows, so hidden pages load nothing.
 	if (o.kind === "note") return `<div class="embed note" ${style}>${notes.get(o.path) ?? ""}</div>`;
-	if (o.kind === "web") return `<iframe class="embed" ${style} data-src="${escapeHtml(o.src)}" allowfullscreen></iframe>`;
+	if (o.kind === "web") return `<iframe class="embed" ${style} data-src="${escapeHtml(o.src)}" sandbox="${WEB_SANDBOX}" allowfullscreen></iframe>`;
 	return `<iframe class="embed" ${style} sandbox="allow-scripts" data-srcdoc="${escapeHtml(codeSrcdoc(o.source))}"></iframe>`;
 }
 
@@ -60,7 +61,7 @@ body.show-notes .notes { display: block; }
 `;
 
 /** Present mode for the exported file: keys, click halves, counter. Plain JS, runs as is. */
-export const PLAYER = `
+const PLAYER = `
 (function () {
 	var pages = Array.prototype.slice.call(document.querySelectorAll(".page"));
 	var bar = document.querySelector(".bar");

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isWebLink, webEmbedSrc } from "../src/canvas/web-embeds";
+import { allowWebEmbed, isLiveWebLink, isWebLink, webEmbedSrc } from "../src/canvas/web-embeds";
 
 describe("web links", () => {
 	test("only http and https", () => {
@@ -11,6 +11,16 @@ describe("web links", () => {
 		expect(isWebLink("example.com")).toBe(false);
 		expect(isWebLink(null)).toBe(false);
 		expect(isWebLink(undefined)).toBe(false);
+	});
+});
+
+describe("live web links", () => {
+	test("only links allowed first", () => {
+		expect(isLiveWebLink("https://live.example.com")).toBe(false);
+		allowWebEmbed("https://live.example.com");
+		expect(isLiveWebLink("https://live.example.com")).toBe(true);
+		allowWebEmbed("javascript:alert(1)");
+		expect(isLiveWebLink("javascript:alert(1)")).toBe(false);
 	});
 });
 
