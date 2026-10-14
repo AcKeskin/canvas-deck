@@ -55,7 +55,7 @@ export function deserializeSlide(text: string): SlideData {
 		version: 1,
 		frame: isBounds(raw.frame) ? raw.frame : base.frame,
 		views: Array.isArray(raw.views) ? raw.views.filter((v) => v && isBounds(v.bounds)).map(cleanView) : [],
-		elements: Array.isArray(raw.elements) ? raw.elements : [],
+		elements: Array.isArray(raw.elements) ? repairElements(raw.elements) : [],
 		images: raw.images && typeof raw.images === "object" ? raw.images : {},
 	};
 }
@@ -70,4 +70,11 @@ function isBounds(b: unknown): b is Bounds {
 	if (!b || typeof b !== "object") return false;
 	const o = b as Record<string, unknown>;
 	return ["x", "y", "width", "height"].every((k) => typeof o[k] === "number" && Number.isFinite(o[k]));
+}
+
+/** Fills fields Excalidraw needs to draw. Freedraw without `pressures` crashes its renderer. */
+export function repairElements(els: readonly ExcalidrawElement[]): ExcalidrawElement[] {
+	return els.map((e) =>
+		e.type === "freedraw" && !Array.isArray((e as any).pressures) ? ({ ...e, pressures: [], simulatePressure: true } as ExcalidrawElement) : e,
+	);
 }

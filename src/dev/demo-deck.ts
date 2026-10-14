@@ -1,6 +1,6 @@
 import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/data/transform";
-import { createSlide, newId, type SlideData } from "../canvas/slide-data";
+import { createSlide, newId, repairElements, type SlideData } from "../canvas/slide-data";
 import type { Deck } from "../deck/deck-model";
 import { perfSlideSkeletons } from "./perf-slide";
 
@@ -20,7 +20,7 @@ const box = (x: number, y: number, label: string, roughness = 1): ExcalidrawElem
 
 const slide = (skeletons: ExcalidrawElementSkeleton[], views: SlideData["views"] = []): SlideData => ({
 	...createSlide(),
-	elements: convertToExcalidrawElements(skeletons),
+	elements: repairElements(convertToExcalidrawElements(skeletons)),
 	views,
 });
 
