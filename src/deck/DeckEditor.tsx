@@ -1,14 +1,11 @@
-import { convertToExcalidrawElements, exportToSvg } from "@excalidraw/excalidraw";
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import type { BinaryFiles, DataURL } from "@excalidraw/excalidraw/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CanvasEngine, ImageStore, NoteRenderer } from "../canvas/engine";
 import { SlideCanvas } from "../canvas/SlideCanvas";
 import { moveView, removeView, renameView } from "../canvas/camera";
 import type { SlideData } from "../canvas/slide-data";
-import { mimeOf } from "../canvas/vault-images";
 import { Presenter } from "../present/Presenter";
 import { resolveDeckLink } from "./deck-links";
+import { Thumb } from "./Thumb";
 import { addSlide, deleteSlide, duplicateSlide, moveSlide, updateSlide, type Deck } from "./deck-model";
 
 export interface DeckHandle {
@@ -91,6 +88,7 @@ export function DeckEditor({ initial, images, notes, theme, onChange, onReady, o
 			else e.camera.goToFrame(e.slide);
 		}
 	};
+	const keepSlideData = useCallback((id: string, data: SlideData) => setDeck((d) => updateSlide(d, id, { data })), []);
 
 	const views = slide.data.views;
 
@@ -205,6 +203,7 @@ export function DeckEditor({ initial, images, notes, theme, onChange, onReady, o
 					theme={theme}
 					onExit={exitPresent}
 					onEngine={onEngine}
+					onSlideData={keepSlideData}
 				/>
 			)}
 		</div>
@@ -261,50 +260,4 @@ function SlideList({ deck, images, current, onSelect, onAdd, onDuplicate, onDele
 			</div>
 		</div>
 	);
-}
-
-/** Small preview of the slide's start frame, redrawn shortly after its content changes. */
-function Thumb({ data, images }: { data: SlideData; images: ImageStore }) {
-	const ref = useRef<HTMLDivElement>(null);
-	useEffect(() => {
-		const t = window.setTimeout(async () => {
-			const el = ref.current;
-			if (!el) return;
-			const f = data.frame;
-			// An invisible rectangle pins the export to the start frame.
-			const [pin] = convertToExcalidrawElements([
-				{ type: "rectangle", x: f.x, y: f.y, width: f.width, height: f.height, opacity: 0, strokeColor: "transparent" },
-			]);
-			const inFrame = data.elements.filter(
-				(e) => e.x < f.x + f.width && e.x + e.width > f.x && e.y < f.y + f.height && e.y + e.height > f.y,
-			);
-			try {
-				const svg = await exportToSvg({
-					elements: [pin, ...inFrame],
-					files: await loadFiles(inFrame, data, images),
-					appState: { exportBackground: false, exportPadding: 0 } as any,
-					exportPadding: 0,
-				});
-				svg.setAttribute("width", "100%");
-				svg.setAttribute("height", "100%");
-				el.replaceChildren(svg);
-			} catch {
-				el.replaceChildren();
-			}
-		}, 600);
-		return () => window.clearTimeout(t);
-	}, [data, images]);
-	return <div className="canvas-deck-thumb" ref={ref} />;
-}
-
-/** Image bytes for the image elements in `elements`. Missing files are skipped. */
-async function loadFiles(elements: readonly ExcalidrawElement[], data: SlideData, images: ImageStore): Promise<BinaryFiles> {
-	const files: BinaryFiles = {};
-	for (const e of elements) {
-		if (e.type !== "image" || !e.fileId || files[e.fileId]) continue;
-		const path = data.images[e.fileId];
-		const dataURL = path ? await images.load(path) : null;
-		if (dataURL) files[e.fileId] = { id: e.fileId, dataURL: dataURL as DataURL, mimeType: mimeOf(path) as any, created: 0 };
-	}
-	return files;
 }

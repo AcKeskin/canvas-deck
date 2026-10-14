@@ -4,6 +4,7 @@ import {
 	getCommonBounds,
 	getSceneVersion,
 	newElementWith,
+	restoreElements,
 	viewportCoordsToSceneCoords,
 } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/types";
@@ -130,6 +131,12 @@ export class CanvasEngine {
 		const [rect] = convertToExcalidrawElements([{ type: "rectangle", x: c.x - 300, y: c.y - 200, width: 600, height: 400 }]);
 		const el = { ...rect, type: "embeddable", link: formatNoteLink(path), roundness: null } as ExcalidrawElement;
 		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
+	}
+
+	/** Adds elements on top. Missing fields get Excalidraw's defaults. They save like any edit. */
+	addElements(elements: object[]) {
+		const added = restoreElements(elements as any, null);
+		this.api.updateScene({ elements: [...this.api.getSceneElements(), ...added] });
 	}
 
 	/** Scene point under a screen point. */
