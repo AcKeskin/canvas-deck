@@ -8,10 +8,11 @@ import { linkTargets, type LinkTarget } from "./deck/deck-links";
 import { createDeck, type Deck } from "./deck/deck-model";
 import { DECK_VIEW, DeckView } from "./deck/deck-view";
 import { demoDeck } from "./dev/demo-deck";
-import { useLocalFonts } from "./obsidian/fonts";
+import { installFonts, useLocalFonts } from "./obsidian/fonts";
 import { exportDeckHtml } from "./obsidian/html-export";
 import { exportDeckPdf } from "./obsidian/pdf-export";
 import { vaultImageStore } from "./obsidian/vault-image-store";
+import { FONTS } from "virtual:fonts";
 import { CanvasDeckSettingTab, DEFAULT_SETTINGS, type CanvasDeckSettings } from "./settings";
 import { loadTemplate, saveTemplate, TemplatePicker, templateFiles } from "./templates";
 
@@ -21,7 +22,12 @@ export default class CanvasDeckPlugin extends Plugin {
 	settings: CanvasDeckSettings = { ...DEFAULT_SETTINGS };
 
 	async onload() {
-		if (this.manifest.dir) useLocalFonts(this.app, this.manifest.dir);
+		if (this.manifest.dir) {
+			const dir = this.manifest.dir;
+			// Missing fonts fall back to the CDN, so a failed write only costs offline text.
+			await installFonts(this.app, dir, FONTS).catch((e) => console.error("Canvas Deck: cannot install fonts", e));
+			useLocalFonts(this.app, dir);
+		}
 		this.settings = { ...DEFAULT_SETTINGS, ...(await this.loadData()) };
 		this.addSettingTab(new CanvasDeckSettingTab(this.app, this, this.settings, () => this.saveData(this.settings)));
 		this.registerView(DECK_VIEW, (leaf) => new DeckView(leaf));
