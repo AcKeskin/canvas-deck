@@ -9,6 +9,7 @@ import { createDeck, type Deck } from "./deck/deck-model";
 import { DECK_VIEW, DeckView } from "./deck/deck-view";
 import { demoDeck } from "./dev/demo-deck";
 import { useLocalFonts } from "./obsidian/fonts";
+import { exportDeckHtml } from "./obsidian/html-export";
 import { exportDeckPdf } from "./obsidian/pdf-export";
 import { vaultImageStore } from "./obsidian/vault-image-store";
 import { CanvasDeckSettingTab, DEFAULT_SETTINGS, type CanvasDeckSettings } from "./settings";
@@ -61,6 +62,9 @@ export default class CanvasDeckPlugin extends Plugin {
 		});
 		this.deckCommand("export-pdf", "Export deck to PDF", (v) => {
 			if (v.file) exportDeckPdf(this.app, v.file, parseDeck(v.getViewData()), vaultImageStore(this.app, () => v.file?.path));
+		});
+		this.deckCommand("export-html", "Export deck to HTML", (v) => {
+			if (v.file) exportDeckHtml(this.app, v.file, parseDeck(v.getViewData()), vaultImageStore(this.app, () => v.file?.path));
 		});
 		this.deckCommand("link-selection", "Link selection to slide or view", (v) => {
 			const engine = v.engine;
