@@ -104,3 +104,30 @@ test("laser shows a dot and doesn't pan", async ({ page }) => {
 	expect(red).toBe(true);
 	await page.screenshot({ path: `${shots}/8-present-laser.png` });
 });
+
+test("E edits the slide in present mode and the editor keeps it", async ({ page }) => {
+	const before = await page.evaluate(() => window.harness.deck!.slides[0].data.elements.length);
+	await page.keyboard.press("e");
+	await expect(page.locator(".canvas-deck-present-bar [aria-label=Edit]")).toHaveText("Done");
+	await page.evaluate(() => window.harness.engine!.api.setActiveTool({ type: "rectangle" }));
+	await page.mouse.move(300, 300);
+	await page.mouse.down();
+	await page.mouse.move(500, 450, { steps: 5 });
+	await page.mouse.up();
+	await page.waitForFunction((n) => window.harness.deck!.slides[0].data.elements.length === n + 1, before);
+	await page.keyboard.press("Escape");
+	await expect(page.locator(".canvas-deck-present-bar [aria-label=Edit]")).toHaveText("Edit");
+	await page.keyboard.press("Escape");
+	await expect(page.locator(".canvas-deck-presenter")).toHaveCount(0);
+	await page.waitForTimeout(500);
+	const inEditor = await page.evaluate(() => window.harness.engine!.api.getSceneElements().length);
+	expect(inEditor).toBe(before + 1);
+});
+
+test("? shows the keys", async ({ page }) => {
+	await page.keyboard.press("?");
+	await expect(page.locator(".canvas-deck-help")).toContainText("Laser pointer");
+	await page.keyboard.press("Escape");
+	await expect(page.locator(".canvas-deck-help")).toHaveCount(0);
+	await expect(page.locator(".canvas-deck-presenter")).toBeVisible();
+});

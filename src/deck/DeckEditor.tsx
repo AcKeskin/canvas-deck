@@ -106,7 +106,12 @@ export function DeckEditor({ initial, images, notes, theme, onChange, onReady, o
 			else e.camera.goToFrame(e.slide);
 		}
 	};
-	const keepSlideData = useCallback((id: string, data: SlideData) => setDeck((d) => updateSlide(d, id, { data })), []);
+	// Presenter edits replace the slide; the editor canvas reloads it after.
+	const [rev, setRev] = useState(0);
+	const keepSlideData = useCallback((id: string, data: SlideData) => {
+		setDeck((d) => updateSlide(d, id, { data }));
+		setRev((r) => r + 1);
+	}, []);
 
 	const views = slide.data.views;
 	const view = activeView?.slide === slide.id ? views.find((v) => v.id === activeView.view) : undefined;
@@ -237,7 +242,7 @@ export function DeckEditor({ initial, images, notes, theme, onChange, onReady, o
 				</div>
 				<div className="canvas-deck-canvas">
 					<SlideCanvas
-						key={slide.id}
+						key={`${slide.id}:${rev}`}
 						initial={slide.data}
 						images={images}
 						notes={notes}
