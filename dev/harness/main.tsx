@@ -4,7 +4,7 @@ import { convertToExcalidrawElements, getFreeDrawSvgPath } from "@excalidraw/exc
 import { createRoot } from "react-dom/client";
 import type { CanvasEngine, ImageStore, NoteRenderer } from "../../src/canvas/engine";
 import { SlideCanvas } from "../../src/canvas/SlideCanvas";
-import { createSlide, type SlideData } from "../../src/canvas/slide-data";
+import { createSlide, repairElements, type SlideData } from "../../src/canvas/slide-data";
 import { perfSlideSkeletons } from "../../src/dev/perf-slide";
 import { demoDeck } from "../../src/dev/demo-deck";
 import { DeckEditor, type DeckHandle } from "../../src/deck/DeckEditor";
@@ -48,7 +48,7 @@ const params = new URLSearchParams(location.search);
 const perf = Number(params.get("perf") ?? 0);
 const initial: SlideData = {
 	...createSlide(),
-	elements: perf ? convertToExcalidrawElements(perfSlideSkeletons(perf)) : [],
+	elements: perf ? repairElements(convertToExcalidrawElements(perfSlideSkeletons(perf))) : [],
 };
 
 declare global {

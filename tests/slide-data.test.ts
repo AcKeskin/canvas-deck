@@ -51,4 +51,10 @@ describe("slide data", () => {
 	test("rejects unknown versions", () => {
 		expect(() => deserializeSlide('{"version":2}')).toThrow();
 	});
+
+	test("freedraw without pressures gets simulated pressure", () => {
+		const fd = { id: "f", type: "freedraw", points: [[0, 0], [5, 5]] };
+		const s = deserializeSlide(JSON.stringify({ ...createSlide(), elements: [fd] }));
+		expect(s.elements[0]).toMatchObject({ pressures: [], simulatePressure: true });
+	});
 });

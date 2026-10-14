@@ -114,3 +114,11 @@ test("text is re-measured once the font loads", async ({ page }) => {
 		});
 	});
 });
+
+test("big diagram slide draws without errors", async ({ page }) => {
+	const errors: string[] = [];
+	page.on("console", (m) => m.type() === "error" && m.text().includes("TypeError") && errors.push(m.text()));
+	await page.locator(".canvas-deck-list-item").nth(2).click();
+	await page.waitForTimeout(1500);
+	expect(errors).toEqual([]);
+});
