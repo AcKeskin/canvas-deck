@@ -1,6 +1,6 @@
 {
 	"name": "canvas-deck",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"private": true,
 	"description": "Obsidian plugin for slide decks where each slide is an infinite canvas.",
 	"author": "Ali Can Keskin (https://github.com/AcKeskin)",
