@@ -8,13 +8,16 @@ export interface SlideCanvasProps {
 	initial: SlideData;
 	images: ImageStore;
 	readOnly?: boolean;
+	/** Present mode: read-only, no editor UI, no frame outline. */
+	presenting?: boolean;
 	theme?: "light" | "dark";
 	onChange(slide: SlideData): void;
 	onReady?(engine: CanvasEngine): void;
 }
 
 /** One slide as an Excalidraw canvas, with the 16:9 start frame drawn on top. */
-export function SlideCanvas({ initial, images, readOnly, theme, onChange, onReady }: SlideCanvasProps) {
+export function SlideCanvas({ initial, images, readOnly, presenting, theme, onChange, onReady }: SlideCanvasProps) {
+	readOnly = readOnly || presenting;
 	const engine = useRef<CanvasEngine | null>(null);
 	const [frameRect, setFrameRect] = useState<Bounds | null>(null);
 
@@ -40,12 +43,13 @@ export function SlideCanvas({ initial, images, readOnly, theme, onChange, onRead
 	);
 
 	return (
-		<div className="canvas-deck-slide" style={{ position: "relative", width: "100%", height: "100%" }}>
+		<div className={`canvas-deck-slide${presenting ? " is-presenting" : ""}`} style={{ position: "relative", width: "100%", height: "100%" }}>
 			<Excalidraw
 				excalidrawAPI={onApi}
 				initialData={{ elements: initial.elements, scrollToContent: false }}
 				onChange={(els, state, files) => engine.current?.handleChange(els, state, files)}
 				viewModeEnabled={readOnly}
+				zenModeEnabled={presenting}
 				theme={theme}
 			/>
 			{frameRect && !readOnly && (

@@ -1,14 +1,17 @@
 import esbuild from "esbuild";
 import builtins from "builtin-modules";
-import { copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const prod = process.argv[2] === "production";
 
-// Excalidraw's stylesheet ships as the plugin's styles.css.
+// styles.css = Excalidraw stylesheet + ours.
 const copyStyles = {
 	name: "copy-styles",
 	setup(build) {
-		build.onEnd(() => copyFileSync(`node_modules/@excalidraw/excalidraw/dist/${prod ? "prod" : "dev"}/index.css`, "styles.css"));
+		build.onEnd(() => {
+			const css = readFileSync(`node_modules/@excalidraw/excalidraw/dist/${prod ? "prod" : "dev"}/index.css`, "utf8");
+			writeFileSync("styles.css", css + "\n" + readFileSync("src/deck/deck.css", "utf8"));
+		});
 	},
 };
 
