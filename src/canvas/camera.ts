@@ -36,7 +36,7 @@ export interface Clock {
 
 const browserClock: Clock = {
 	now: () => performance.now(),
-	frame: (cb) => requestAnimationFrame(() => cb()),
+	frame: (cb) => window.requestAnimationFrame(() => cb()),
 };
 
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));

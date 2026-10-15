@@ -16,7 +16,7 @@ export function isCodeLink(link: string | null | undefined): boolean {
 
 /** The card's HTML, or "" if it has none. */
 export function codeSource(el: ExcalidrawElement): string {
-	const source = el.customData?.source;
+	const source: unknown = el.customData?.source;
 	return typeof source === "string" ? source : "";
 }
 

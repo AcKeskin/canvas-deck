@@ -1,6 +1,6 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI, ExcalidrawProps } from "@excalidraw/excalidraw/types";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { parseDeckLink } from "../deck/deck-links";
 import { codeCardProps } from "./CodeCard";
 import { combineEmbedProps } from "./embed-props";
@@ -27,10 +27,10 @@ export interface SlideCanvasProps {
 	editFrame?: boolean;
 	/** Resize keeps the frame's aspect. */
 	keepAspect?: boolean;
-	onChange(slide: SlideData): void;
-	onReady?(engine: CanvasEngine): void;
+	onChange: (slide: SlideData) => void;
+	onReady?: (engine: CanvasEngine) => void;
 	/** Called when a `#cdeck:` link is followed. Other links open as usual. */
-	onDeckLink?(slideId: string, viewId?: string): void;
+	onDeckLink?: (slideId: string, viewId?: string) => void;
 }
 
 /** One slide as an Excalidraw canvas, with the start frame drawn on top. */
@@ -60,10 +60,10 @@ export function SlideCanvas({ initial, images, notes, code, presenting, editing,
 			if (host.current) e.enableMotion(host.current, () => theme === "dark");
 			api.onScrollChange((x, y, z) => updateFrame(x, y, z.value));
 			// Excalidraw needs one frame to size itself before the camera can fit.
-			requestAnimationFrame(() => {
-				e.camera.goToFrame(initial, { animate: false });
-				e.loadImages();
-				document.fonts.ready.then(() => e.refreshText());
+			window.requestAnimationFrame(() => {
+				void e.camera.goToFrame(initial, { animate: false });
+				void e.loadImages();
+				void document.fonts.ready.then(() => e.refreshText());
 				onReady?.(e);
 			});
 		},
@@ -84,7 +84,7 @@ export function SlideCanvas({ initial, images, notes, code, presenting, editing,
 
 	// In present mode a click or tap anywhere on a linked element follows it.
 	// Excalidraw does this on desktop only, so taps are handled here for all devices.
-	const onPointerUp = (e: React.PointerEvent) => {
+	const onPointerUp = (e: ReactPointerEvent) => {
 		const start = down.current;
 		down.current = null;
 		if (!presenting || editing || !start || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) return;

@@ -28,7 +28,7 @@ export default class CanvasDeckPlugin extends Plugin {
 			await installFonts(this.app, dir, FONTS).catch((e) => console.error("Canvas Deck: cannot install fonts", e));
 			useLocalFonts(this.app, dir);
 		}
-		this.settings = { ...DEFAULT_SETTINGS, ...(await this.loadData()) };
+		this.settings = { ...DEFAULT_SETTINGS, ...((await this.loadData()) as Partial<CanvasDeckSettings> | null) };
 		this.addSettingTab(new CanvasDeckSettingTab(this.app, this, this.settings, () => this.saveData(this.settings)));
 		this.registerView(DECK_VIEW, (leaf) => new DeckView(leaf));
 		this.addRibbonIcon("presentation", "New canvas deck", () => this.newDeck(createDeck(), "Untitled deck"));
@@ -38,11 +38,11 @@ export default class CanvasDeckPlugin extends Plugin {
 
 		this.deckCommand("present", "Present deck from current slide", (v) => v.handle?.present());
 		this.deckCommand("present-start", "Present deck from start", (v) => v.handle?.present(0));
-		this.deckCommand("home", "Go to start frame", (v) => v.engine && v.engine.camera.goToFrame(v.engine.slide));
+		this.deckCommand("home", "Go to start frame", (v) => void v.engine?.camera.goToFrame(v.engine.slide));
 		this.deckCommand("save-view", "Save current view", (v) => v.engine?.saveCurrentView(`View ${(v.engine?.slide.views.length ?? 0) + 1}`));
 		this.deckCommand("insert-image", "Insert vault image", (v) => {
 			const files = this.app.vault.getFiles().filter((f) => isImagePath(f.path));
-			new FilePicker(this.app, "Pick an image", files, (f) => v.engine?.insertImage(f.path)).open();
+			new FilePicker(this.app, "Pick an image", files, (f) => void v.engine?.insertImage(f.path)).open();
 		});
 		this.deckCommand("insert-note", "Insert note", (v) => {
 			const files = this.app.vault.getMarkdownFiles().filter((f) => f !== v.file);
@@ -93,18 +93,19 @@ export default class CanvasDeckPlugin extends Plugin {
 				new Notice(`No templates in "${this.settings.templateFolder}" yet. Use "Save slide as template" first.`);
 				return;
 			}
-			new TemplatePicker(this.app, files, async (f) => {
+			const insert = async (f: TFile) => {
 				try {
 					v.handle?.insertSlide(await loadTemplate(this.app, f));
 				} catch (e) {
 					new Notice(`Canvas Deck: cannot read template: ${(e as Error).message}`);
 				}
-			}).open();
+			};
+			new TemplatePicker(this.app, files, (f) => void insert(f)).open();
 		});
 		this.deckCommand("open-markdown", "Open deck as markdown", (v) => {
 			if (!v.file) return;
 			this.asMarkdown.add(v.file.path);
-			v.leaf.setViewState({ type: "markdown", state: { file: v.file.path } });
+			void v.leaf.setViewState({ type: "markdown", state: { file: v.file.path } });
 		});
 
 		this.addCommand({
@@ -115,7 +116,7 @@ export default class CanvasDeckPlugin extends Plugin {
 				if (!view?.file || !this.isDeck(view.file)) return false;
 				if (!checking) {
 					this.asMarkdown.delete(view.file.path);
-					this.openAsDeck(view.leaf, view.file);
+					void this.openAsDeck(view.leaf, view.file);
 				}
 				return true;
 			},
@@ -126,7 +127,7 @@ export default class CanvasDeckPlugin extends Plugin {
 			this.app.workspace.on("file-open", (file) => {
 				if (!file || !this.isDeck(file) || this.asMarkdown.has(file.path)) return;
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (view?.file === file) this.openAsDeck(view.leaf, file);
+				if (view?.file === file) void this.openAsDeck(view.leaf, file);
 			}),
 		);
 
@@ -138,14 +139,14 @@ export default class CanvasDeckPlugin extends Plugin {
 		);
 	}
 
-	private deckCommand(id: string, name: string, run: (v: DeckView) => void) {
+	private deckCommand(id: string, name: string, run: (v: DeckView) => void | Promise<void>) {
 		this.addCommand({
 			id,
 			name,
 			checkCallback: (checking) => {
 				const view = this.app.workspace.getActiveViewOfType(DeckView);
 				if (!view) return false;
-				if (!checking) run(view);
+				if (!checking) void run(view);
 				return true;
 			},
 		});

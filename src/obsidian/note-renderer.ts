@@ -21,9 +21,9 @@ export function vaultNoteRenderer(app: App, sourcePath: () => string | undefined
 				else await MarkdownRenderer.render(app, text, el, path, comp);
 			};
 			const ref = app.vault.on("modify", (f) => {
-				if (f.path === path) draw();
+				if (f.path === path) void draw();
 			});
-			draw();
+			void draw();
 			return () => {
 				run++;
 				app.vault.offref(ref);
@@ -31,7 +31,7 @@ export function vaultNoteRenderer(app: App, sourcePath: () => string | undefined
 			};
 		},
 		open(path) {
-			app.workspace.openLinkText(path, sourcePath() ?? "", "tab");
+			void app.workspace.openLinkText(path, sourcePath() ?? "", "tab");
 		},
 	};
 }

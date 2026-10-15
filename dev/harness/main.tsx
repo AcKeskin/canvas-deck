@@ -39,7 +39,7 @@ const noteTexts = new Map<string, string>([["notes/hello.md", "Hello from a note
 const opened: string[] = [];
 const notes: NoteRenderer = {
 	render(path, el) {
-		el.style.whiteSpace = "pre-wrap";
+		el.classList.add("harness-note");
 		el.textContent = noteTexts.get(path) ?? `Note not found: ${path}`;
 		return () => {};
 	},
@@ -119,6 +119,7 @@ if (params.has("deck")) {
 			images={store}
 			notes={notes}
 			code={code}
+			ask={(label, value) => Promise.resolve(window.prompt(label, value))}
 			onChange={(d) => {
 				window.harness.deck = d;
 				window.harness.saves++;

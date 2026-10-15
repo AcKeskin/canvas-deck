@@ -23,14 +23,16 @@ export interface DeckEditorProps {
 	/** Code card editor for the editor canvas. Present mode has none: a modal would hide behind fullscreen. */
 	code?: CodeEditor;
 	theme?: "light" | "dark";
-	onChange(deck: Deck): void;
-	onReady?(handle: DeckHandle): void;
+	/** Asks for a name; used to rename slides and views. Without it, double-click renaming is off. */
+	ask?: (label: string, value: string) => Promise<string | null>;
+	onChange: (deck: Deck) => void;
+	onReady?: (handle: DeckHandle) => void;
 	/** The current slide's canvas, for commands that act on it. */
-	onEngine?(engine: CanvasEngine): void;
+	onEngine?: (engine: CanvasEngine) => void;
 }
 
 /** Deck editing screen: slide list, canvas, saved views and speaker notes. */
-export function DeckEditor({ initial, images, notes, code, theme, onChange, onReady, onEngine }: DeckEditorProps) {
+export function DeckEditor({ initial, images, notes, code, theme, ask, onChange, onReady, onEngine }: DeckEditorProps) {
 	const [deck, setDeck] = useState(initial);
 	const [current, setCurrent] = useState(0);
 	const [presenting, setPresenting] = useState<number | null>(null);
@@ -104,8 +106,8 @@ export function DeckEditor({ initial, images, notes, code, theme, onChange, onRe
 			pendingView.current = view;
 			setCurrent(p.slide);
 		} else if (e) {
-			if (view) e.camera.goToView(e.slide, view);
-			else e.camera.goToFrame(e.slide);
+			if (view) void e.camera.goToView(e.slide, view);
+			else void e.camera.goToFrame(e.slide);
 		}
 	};
 	// Presenter edits replace the slide; the editor canvas reloads it after.
@@ -124,7 +126,7 @@ export function DeckEditor({ initial, images, notes, code, theme, onChange, onRe
 		const e = engine.current;
 		if (!e || a === "free") return;
 		e.setFrame(frameWithAspect(e.slide.frame, a));
-		e.camera.goToFrame(e.slide);
+		void e.camera.goToFrame(e.slide);
 	};
 
 	return (
@@ -133,6 +135,7 @@ export function DeckEditor({ initial, images, notes, code, theme, onChange, onRe
 				deck={deck}
 				images={images}
 				current={current}
+				ask={ask}
 				onSelect={select}
 				onAdd={() => {
 					edit((d) => addSlide(d, current));
@@ -164,7 +167,7 @@ export function DeckEditor({ initial, images, notes, code, theme, onChange, onRe
 						<button
 							onClick={() => {
 								setActiveView(null);
-								engine.current?.camera.goToFrame(slide.data);
+								void engine.current?.camera.goToFrame(slide.data);
 							}}
 							title="Back to the start frame"
 						>
@@ -175,12 +178,13 @@ export function DeckEditor({ initial, images, notes, code, theme, onChange, onRe
 								<button
 									onClick={() => {
 										setActiveView({ slide: slide.id, view: v.id });
-										engine.current?.camera.goToView(engine.current.slide, v.id);
+										void engine.current?.camera.goToView(engine.current.slide, v.id);
 									}}
-									onDoubleClick={() => {
-										const name = window.prompt("View name", v.name);
-										if (name) engine.current?.setViews(renameView(engine.current.slide, v.id, name).views);
-									}}
+									onDoubleClick={() =>
+										void ask?.("View name", v.name).then((name) => {
+											if (name) engine.current?.setViews(renameView(engine.current.slide, v.id, name).views);
+										})
+									}
 									title="Go to view (double-click to rename)"
 								>
 									{v.name}
@@ -231,7 +235,7 @@ export function DeckEditor({ initial, images, notes, code, theme, onChange, onRe
 							const e = engine.current;
 							if (!editFrame && e) {
 								const f = e.slide.frame;
-								e.camera.goToBounds({ x: f.x - f.width * 0.1, y: f.y - f.height * 0.1, width: f.width * 1.2, height: f.height * 1.2 });
+								void e.camera.goToBounds({ x: f.x - f.width * 0.1, y: f.y - f.height * 0.1, width: f.width * 1.2, height: f.height * 1.2 });
 							}
 						}}
 						title="Move and resize the start frame"
@@ -255,7 +259,7 @@ export function DeckEditor({ initial, images, notes, code, theme, onChange, onRe
 						onChange={onSlideData(slide.id)}
 						onReady={(e) => {
 							engine.current = e;
-							if (pendingView.current) e.camera.goToView(e.slide, pendingView.current, { animate: false });
+							if (pendingView.current) void e.camera.goToView(e.slide, pendingView.current, { animate: false });
 							pendingView.current = null;
 							onEngine?.(e);
 						}}
@@ -297,15 +301,16 @@ interface SlideListProps {
 	deck: Deck;
 	images: ImageStore;
 	current: number;
-	onSelect(i: number): void;
-	onAdd(): void;
-	onDuplicate(): void;
-	onDelete(): void;
-	onMove(from: number, to: number): void;
-	onRename(i: number, title: string): void;
+	ask?: (label: string, value: string) => Promise<string | null>;
+	onSelect: (i: number) => void;
+	onAdd: () => void;
+	onDuplicate: () => void;
+	onDelete: () => void;
+	onMove: (from: number, to: number) => void;
+	onRename: (i: number, title: string) => void;
 }
 
-function SlideList({ deck, images, current, onSelect, onAdd, onDuplicate, onDelete, onMove, onRename }: SlideListProps) {
+function SlideList({ deck, images, current, ask, onSelect, onAdd, onDuplicate, onDelete, onMove, onRename }: SlideListProps) {
 	const drag = useRef<number | null>(null);
 	return (
 		<div className="canvas-deck-list">
@@ -322,10 +327,11 @@ function SlideList({ deck, images, current, onSelect, onAdd, onDuplicate, onDele
 							drag.current = null;
 						}}
 						onClick={() => onSelect(i)}
-						onDoubleClick={() => {
-							const t = window.prompt("Slide title", s.title);
-							if (t !== null) onRename(i, t);
-						}}
+						onDoubleClick={() =>
+							void ask?.("Slide title", s.title).then((t) => {
+								if (t !== null) onRename(i, t);
+							})
+						}
 					>
 						<Thumb data={s.data} images={images} />
 						<div className="canvas-deck-list-label">

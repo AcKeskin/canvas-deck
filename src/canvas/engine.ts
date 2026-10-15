@@ -2,20 +2,21 @@ import {
 	CaptureUpdateAction,
 	convertToExcalidrawElements,
 	getCommonBounds,
-	getSceneVersion,
+	hashElementsVersion,
 	newElementWith,
 	restoreElements,
 	viewportCoordsToSceneCoords,
 } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/types";
-import type { AppState, BinaryFiles, DataURL, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { addView, CameraController, type CameraHost } from "./camera";
 import { codeSource, CODE_LINK, isCodeLink } from "./code-cards";
+import { imageFile } from "./excalidraw-export";
 import { MotionSnapshot } from "./motion-snapshot";
 import { formatNoteLink } from "./note-links";
 import { allowWebEmbed } from "./web-embeds";
 import { newId, type Bounds, type SlideData } from "./slide-data";
-import { mimeOf, pruneImages, unsavedFileIds } from "./vault-images";
+import { pruneImages, unsavedFileIds } from "./vault-images";
 
 /** Where image bytes live. Obsidian vault in the app, a fake in tests. */
 export interface ImageStore {
@@ -78,7 +79,7 @@ export class CanvasEngine {
 	private schedulePrepare(delay: number) {
 		if (!this.motion) return;
 		window.clearTimeout(this.prepareTimer);
-		this.prepareTimer = window.setTimeout(() => this.motion?.prepare(), delay);
+		this.prepareTimer = window.setTimeout(() => void this.motion?.prepare(), delay);
 	}
 
 	get slide(): SlideData {
@@ -91,7 +92,7 @@ export class CanvasEngine {
 		const loaded = await Promise.all(
 			entries.map(async ([id, path]) => {
 				const dataURL = await this.store.load(path);
-				return dataURL ? { id: id as FileId, dataURL: dataURL as DataURL, mimeType: mimeOf(path) as any, created: Date.now() } : null;
+				return dataURL ? imageFile(id, path, dataURL, Date.now()) : null;
 			}),
 		);
 		this.api.addFiles(loaded.filter((f) => f !== null));
@@ -99,12 +100,12 @@ export class CanvasEngine {
 
 	/** Wire to Excalidraw's onChange. */
 	handleChange(elements: readonly ExcalidrawElement[], _appState: AppState, files: BinaryFiles) {
-		const version = getSceneVersion(elements);
+		const version = hashElementsVersion(elements);
 		if (version === this.sceneVersion) return;
 		this.sceneVersion = version;
 		this.schedulePrepare(1500);
 		this.update(pruneImages({ ...this._slide, elements: elements.filter((e) => !e.isDeleted) }));
-		for (const id of unsavedFileIds(this._slide, Object.keys(files))) this.saveFile(id, files);
+		for (const id of unsavedFileIds(this._slide, Object.keys(files))) void this.saveFile(id, files);
 	}
 
 	private async saveFile(id: FileId, files: BinaryFiles) {
@@ -125,7 +126,7 @@ export class CanvasEngine {
 		if (!dataURL) throw new Error(`Cannot read ${path}`);
 		const { width, height } = await imageSize(dataURL);
 		const id = newId() as FileId;
-		this.api.addFiles([{ id, dataURL: dataURL as DataURL, mimeType: mimeOf(path) as any, created: Date.now() }]);
+		this.api.addFiles([imageFile(id, path, dataURL, Date.now())]);
 		const c = at ?? this.viewCenter();
 		const [el] = convertToExcalidrawElements([
 			{ type: "image", fileId: id, x: c.x - width / 2, y: c.y - height / 2, width, height },
@@ -187,7 +188,7 @@ export class CanvasEngine {
 
 	/** Adds elements on top. Missing fields get Excalidraw's defaults. They save like any edit. */
 	addElements(elements: object[]) {
-		const added = restoreElements(elements as any, null);
+		const added = restoreElements(elements as Parameters<typeof restoreElements>[0], null);
 		this.api.updateScene({ elements: [...this.api.getSceneElements(), ...added] });
 	}
 

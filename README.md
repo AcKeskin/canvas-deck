@@ -121,6 +121,14 @@ Speaker notes for this slide.
 
 The `%%` comment hides the data in reading view. Titles and notes stay searchable. View notes live inside the slide data.
 
+## Network and data use
+
+- Network: web embeds load the pages you add. Fonts not bundled with the plugin (Chinese, Japanese, Korean) load from the Excalidraw CDN. Nothing else is sent anywhere.
+- Vault: the plugin lists vault files only for the image and note pickers, and reads or writes only decks, the images and notes on them, exports and templates.
+- Clipboard: copy and paste on the canvas use the system clipboard, as in Excalidraw.
+- Local storage and dynamic code: Excalidraw may keep editor preferences in local storage, and its font tools build some code at runtime. The plugin's own data uses Obsidian's APIs.
+- Code cards run your HTML and scripts in a sandboxed frame that cannot reach the vault or Obsidian.
+
 ## Development
 
 ```
@@ -159,7 +167,8 @@ To release, bump `version` in `manifest.json`, `package.json` and `versions.json
 - Not in the community plugin store yet.
 - Chinese, Japanese and Korean text has no offline hand-drawn font. It loads from the web, and uses a system font when offline.
 - Tested mostly in the browser test page, less in Obsidian itself.
-- Web embeds: sites that forbid framing (X-Frame-Options or CSP frame-ancestors) show a blank box. After you click into an embed in present mode, it keeps the keys; click the slide outside it to step again.
+- `main.js` is about 9 MB, mostly Excalidraw. Obsidian Sync Standard does not sync files over 5 MB, so install the plugin on each device.
+- Web embeds: sites that forbid framing (X-Frame-Options or CSP frame-ancestors) show a blank box. After you click into an embed in present mode, move the pointer off it to step with the keys again.
 
 ## License
 
