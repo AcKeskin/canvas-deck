@@ -50,6 +50,10 @@ Taken in the browser test harness, so they use plain styles instead of your Obsi
 | **All slides and views (G)** | **Keys (?)** |
 | ![Grid of slide thumbnails with their saved views](https://raw.githubusercontent.com/AcKeskin/canvas-deck/main/docs/screens/grid.png) | ![Help overlay listing present-mode keys](https://raw.githubusercontent.com/AcKeskin/canvas-deck/main/docs/screens/keys.png) |
 
+**Live web page and code card in present mode**
+
+![A slide in present mode with a live Wikipedia page and a code card drawing colored bars](https://raw.githubusercontent.com/AcKeskin/canvas-deck/main/docs/screens/embeds.png)
+
 ## Usage
 
 - Left: the slide list. Click to open, double-click to rename, and drag or use ↑/↓ to reorder.
