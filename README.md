@@ -6,7 +6,7 @@ A fully vibe-coded Obsidian plugin I made for myself, built with [contexture](ht
 
 Draw each slide on an Excalidraw canvas, mark a start frame, and save views on it. Present mode steps through the slides and flies to each view. A deck is a normal markdown note, so titles and speaker notes stay searchable.
 
-![The deck editor: slide list, canvas with the start frame, and speaker notes](docs/screens/editor.png)
+![The deck editor: slide list, canvas with the start frame, and speaker notes](https://raw.githubusercontent.com/AcKeskin/canvas-deck/main/docs/screens/editor.png)
 
 ## Install
 
@@ -46,9 +46,9 @@ Taken in the browser test harness, so they use plain styles instead of your Obsi
 
 | Present mode with the pen | Saved views on a 2,000-object slide |
 |---|---|
-| ![Present mode with red pen ink circling the title](docs/screens/present-pen.png) | ![Editor flown to the "Middle" saved view of a big diagram](docs/screens/saved-views.png) |
+| ![Present mode with red pen ink circling the title](https://raw.githubusercontent.com/AcKeskin/canvas-deck/main/docs/screens/present-pen.png) | ![Editor flown to the "Middle" saved view of a big diagram](https://raw.githubusercontent.com/AcKeskin/canvas-deck/main/docs/screens/saved-views.png) |
 | **All slides and views (G)** | **Keys (?)** |
-| ![Grid of slide thumbnails with their saved views](docs/screens/grid.png) | ![Help overlay listing present-mode keys](docs/screens/keys.png) |
+| ![Grid of slide thumbnails with their saved views](https://raw.githubusercontent.com/AcKeskin/canvas-deck/main/docs/screens/grid.png) | ![Help overlay listing present-mode keys](https://raw.githubusercontent.com/AcKeskin/canvas-deck/main/docs/screens/keys.png) |
 
 ## Usage
 
