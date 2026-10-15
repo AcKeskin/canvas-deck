@@ -34,6 +34,10 @@ Taken in the browser test harness, so they use plain styles instead of your Obsi
 | **All slides and views (G)** | **Keys (?)** |
 | ![Grid of slide thumbnails with their saved views](docs/screens/grid.png) | ![Help overlay listing present-mode keys](docs/screens/keys.png) |
 
+**Live web page and code card in present mode**
+
+![A slide in present mode with a live Wikipedia page and a code card drawing colored bars](docs/screens/embeds.png)
+
 ## Install
 
 The plugin is not in the community plugin store yet, and there is no BRAT setup. Install it by hand:
