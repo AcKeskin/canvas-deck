@@ -9,7 +9,7 @@ export interface FrameHandlesProps {
 	scrollY: number;
 	zoom: number;
 	keepAspect: boolean;
-	onCommit(frame: Bounds): void;
+	onCommit: (frame: Bounds) => void;
 }
 
 const CORNERS: Corner[] = ["nw", "ne", "sw", "se"];

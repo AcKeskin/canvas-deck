@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -27,5 +29,13 @@ jobs:
           cache: npm
       - if: steps.v.outputs.exists != 'true'
         run: npm ci && npm run build && npm test
+      # Lets users verify the files were built from this repo.
+      - if: steps.v.outputs.exists != 'true'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            styles.css
+            manifest.json
       - if: steps.v.outputs.exists != 'true'
         run: gh release create "${{ steps.v.outputs.version }}" main.js styles.css manifest.json --target "$GITHUB_SHA" --title "${{ steps.v.outputs.version }}" --generate-notes

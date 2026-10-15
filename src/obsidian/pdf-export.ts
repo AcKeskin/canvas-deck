@@ -30,7 +30,7 @@ export function exportDeckPdf(app: App, file: TFile, deck: Deck, images: ImageSt
 class PdfModal extends Modal {
 	constructor(
 		app: App,
-		private onExport: (opts: PdfOptions) => void,
+		private onExport: (opts: PdfOptions) => Promise<void>,
 	) {
 		super(app);
 	}
@@ -50,7 +50,7 @@ class PdfModal extends Modal {
 				.setCta()
 				.onClick(() => {
 					this.close();
-					this.onExport({ ...last });
+					void this.onExport({ ...last });
 				}),
 		);
 	}

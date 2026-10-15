@@ -12,11 +12,12 @@
 .canvas-deck-toolbar { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 1px solid var(--background-modifier-border, #ddd); flex-wrap: wrap; }
 .canvas-deck-title { font-weight: 600; min-width: 120px; flex: 0 1 220px; }
 .canvas-deck-views { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; align-items: center; }
+.workspace-leaf-content .view-content.canvas-deck-view { padding: 0; }
 .canvas-deck-view-chip { display: inline-flex; align-items: center; }
 .canvas-deck-view-chip .chip-x { padding: 0 4px; }
 .canvas-deck-canvas { flex: 1; min-height: 0; position: relative; }
 .canvas-deck-notes { height: 90px; flex: none; resize: vertical; border: 0; border-top: 1px solid var(--background-modifier-border, #ddd); padding: 8px; font: inherit; background: transparent; color: inherit; }
-.canvas-deck-slide.is-presenting .layer-ui__wrapper, .canvas-deck-slide.is-presenting .App-bottom-bar, .canvas-deck-slide.is-presenting .layer-ui__wrapper__footer { display: none !important; }
+.canvas-deck-slide.is-presenting .excalidraw .layer-ui__wrapper, .canvas-deck-slide.is-presenting .excalidraw .App-bottom-bar, .canvas-deck-slide.is-presenting .excalidraw .layer-ui__wrapper__footer { display: none; }
 .canvas-deck-presenter { position: fixed; inset: 0; z-index: 9999; background: var(--background-primary, #fff); animation: canvas-deck-fade 0.25s ease; }
 .canvas-deck-presenter .canvas-deck-slide { animation: canvas-deck-fade 0.3s ease; }
 @keyframes canvas-deck-fade { from { opacity: 0; } to { opacity: 1; } }

@@ -1,16 +1,16 @@
-import { convertToExcalidrawElements, exportToSvg } from "@excalidraw/excalidraw";
+import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import type { BinaryFiles, DataURL } from "@excalidraw/excalidraw/types";
+import type { BinaryFiles } from "@excalidraw/excalidraw/types";
 import { useEffect, useRef } from "react";
 import type { ImageStore } from "../canvas/engine";
 import type { SlideData } from "../canvas/slide-data";
-import { mimeOf } from "../canvas/vault-images";
+import { exportToSvg, imageFile } from "../canvas/excalidraw-export";
 
 /** Small preview of the slide's start frame, redrawn shortly after its content changes. */
 export function Thumb({ data, images }: { data: SlideData; images: ImageStore }) {
 	const ref = useRef<HTMLDivElement>(null);
 	useEffect(() => {
-		const t = window.setTimeout(async () => {
+		const draw = async () => {
 			const el = ref.current;
 			if (!el) return;
 			const f = data.frame;
@@ -25,7 +25,7 @@ export function Thumb({ data, images }: { data: SlideData; images: ImageStore })
 				const svg = await exportToSvg({
 					elements: [pin, ...inFrame],
 					files: await loadFiles(inFrame, data, images),
-					appState: { exportBackground: false, exportPadding: 0 } as any,
+					appState: { exportBackground: false },
 					exportPadding: 0,
 				});
 				svg.setAttribute("width", "100%");
@@ -34,7 +34,8 @@ export function Thumb({ data, images }: { data: SlideData; images: ImageStore })
 			} catch {
 				el.replaceChildren();
 			}
-		}, 600);
+		};
+		const t = window.setTimeout(() => void draw(), 600);
 		return () => window.clearTimeout(t);
 	}, [data, images]);
 	return <div className="canvas-deck-thumb" ref={ref} />;
@@ -47,7 +48,7 @@ async function loadFiles(elements: readonly ExcalidrawElement[], data: SlideData
 		if (e.type !== "image" || !e.fileId || files[e.fileId]) continue;
 		const path = data.images[e.fileId];
 		const dataURL = path ? await images.load(path) : null;
-		if (dataURL) files[e.fileId] = { id: e.fileId, dataURL: dataURL as DataURL, mimeType: mimeOf(path) as any, created: 0 };
+		if (dataURL) files[e.fileId] = imageFile(e.fileId, path, dataURL);
 	}
 	return files;
 }

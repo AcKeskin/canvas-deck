@@ -15,10 +15,10 @@ export interface PresenterProps {
 	notes?: NoteRenderer;
 	start?: number;
 	theme?: "light" | "dark";
-	onExit(): void;
-	onEngine?(engine: CanvasEngine): void;
+	onExit: () => void;
+	onEngine?: (engine: CanvasEngine) => void;
 	/** A slide changed while presenting (kept ink). */
-	onSlideData?(id: string, data: SlideData): void;
+	onSlideData?: (id: string, data: SlideData) => void;
 }
 
 /**
@@ -66,8 +66,8 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 	useEffect(() => {
 		const e = engine.current;
 		if (!e || lastSlide.current !== pos.slide) return;
-		if (pos.view < 0) e.camera.goToFrame(e.slide);
-		else e.camera.goToView(e.slide, e.slide.views[pos.view].id);
+		if (pos.view < 0) void e.camera.goToFrame(e.slide);
+		else void e.camera.goToView(e.slide, e.slide.views[pos.view].id);
 	}, [pos]);
 
 	const onReady = useCallback(
@@ -75,7 +75,7 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 			engine.current = e;
 			lastSlide.current = pos.slide;
 			// A deck link or the grid can land on a view of another slide.
-			if (pos.view >= 0) e.camera.goToView(e.slide, e.slide.views[pos.view].id, { animate: false });
+			if (pos.view >= 0) void e.camera.goToView(e.slide, e.slide.views[pos.view].id, { animate: false });
 			onEngine?.(e);
 		},
 		[pos.slide, pos.view, onEngine],
@@ -147,7 +147,7 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 			else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(k)) setPos((p) => prev(p, shape));
 			else if (k === "Home") {
 				setPos((p) => ({ ...p, view: -1 }));
-				engine.current?.camera.goToFrame(engine.current.slide);
+				void engine.current?.camera.goToFrame(engine.current.slide);
 			} else if (k === "Escape") {
 				if (showHelp) setShowHelp(false);
 				else if (showGrid) setShowGrid(false);

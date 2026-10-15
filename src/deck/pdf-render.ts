@@ -1,9 +1,9 @@
-import { convertToExcalidrawElements, exportToCanvas } from "@excalidraw/excalidraw";
+import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawFrameElement } from "@excalidraw/excalidraw/element/types";
-import type { BinaryFiles, DataURL } from "@excalidraw/excalidraw/types";
+import type { BinaryFiles } from "@excalidraw/excalidraw/types";
 import type { ImageStore } from "../canvas/engine";
 import type { Bounds, SlideData } from "../canvas/slide-data";
-import { mimeOf } from "../canvas/vault-images";
+import { exportToCanvas, imageFile } from "../canvas/excalidraw-export";
 import type { Deck } from "./deck-model";
 import { pictureSize, planPages, wrapText, type PdfOptions, type PdfPage } from "./pdf-plan";
 import { buildPdf, type PdfImagePage } from "./pdf-writer";
@@ -72,7 +72,7 @@ export async function loadFiles(data: SlideData, images: ImageStore, cache: Map<
 	for (const [id, path] of Object.entries(data.images)) {
 		if (!cache.has(path)) cache.set(path, await images.load(path));
 		const dataURL = cache.get(path);
-		if (dataURL) files[id] = { id: id as any, dataURL: dataURL as DataURL, mimeType: mimeOf(path) as any, created: 0 };
+		if (dataURL) files[id] = imageFile(id, path, dataURL);
 	}
 	return files;
 }

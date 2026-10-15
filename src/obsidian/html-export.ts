@@ -25,7 +25,7 @@ export async function exportDeckHtml(app: App, file: TFile, deck: Deck, images: 
 async function noteHtml(app: App, path: string): Promise<string> {
 	const file = app.vault.getFileByPath(path);
 	if (!file) return escapeHtml(`Note not found: ${path}`);
-	const el = document.createElement("div");
+	const el = createDiv();
 	const comp = new Component();
 	comp.load();
 	try {

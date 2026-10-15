@@ -1,6 +1,6 @@
 import esbuild from "esbuild";
-import builtins from "builtin-modules";
 import { readFileSync, writeFileSync } from "node:fs";
+import { builtinModules } from "node:module";
 import { copyFonts, fontsBase64 } from "./scripts/copy-fonts.mjs";
 
 const prod = process.argv[2] === "production";
@@ -26,10 +26,21 @@ const bundleFonts = {
 	},
 };
 
+// React DOM can add <script> tags for script resources. The plugin never renders those; make them inert.
+const noScriptTags = {
+	name: "no-script-tags",
+	setup(build) {
+		build.onLoad({ filter: /react-dom-client\.(production|development)\.js$/ }, (args) => ({
+			contents: readFileSync(args.path, "utf8").replaceAll('createElement("script")', 'createElement("noscript")'),
+			loader: "js",
+		}));
+	},
+};
+
 const ctx = await esbuild.context({
 	entryPoints: ["src/main.ts"],
 	bundle: true,
-	external: ["obsidian", "electron", "@codemirror/*", "@lezer/*", ...builtins],
+	external: ["obsidian", "electron", "@codemirror/*", "@lezer/*", ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
 	format: "cjs",
 	target: "es2020",
 	logLevel: "info",
@@ -39,7 +50,7 @@ const ctx = await esbuild.context({
 	define: { "process.env.NODE_ENV": prod ? '"production"' : '"development"' },
 	conditions: [prod ? "production" : "development"],
 	outfile: "main.js",
-	plugins: [copyStyles, bundleFonts],
+	plugins: [copyStyles, bundleFonts, noScriptTags],
 });
 
 if (prod) {

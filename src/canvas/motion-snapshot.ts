@@ -1,6 +1,7 @@
-import { exportToCanvas, getCommonBounds, getSceneVersion } from "@excalidraw/excalidraw";
+import { getCommonBounds, hashElementsVersion } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import type { Camera, Motion } from "./camera";
+import { exportToCanvas } from "./excalidraw-export";
 
 /** Below this many objects Excalidraw animates fine on its own. */
 const MIN_ELEMENTS = 300;
@@ -36,7 +37,7 @@ export class MotionSnapshot implements Motion {
 	/** Renders the picture if the scene changed since the last one. */
 	async prepare() {
 		const elements = this.api.getSceneElements();
-		const version = getSceneVersion(elements);
+		const version = hashElementsVersion(elements);
 		if (version === this.version) return;
 		this.version = version;
 		if (elements.length < MIN_ELEMENTS) {

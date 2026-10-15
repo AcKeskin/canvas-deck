@@ -75,6 +75,6 @@ function isBounds(b: unknown): b is Bounds {
 /** Fills fields Excalidraw needs to draw. Freedraw without `pressures` crashes its renderer. */
 export function repairElements(els: readonly ExcalidrawElement[]): ExcalidrawElement[] {
 	return els.map((e) =>
-		e.type === "freedraw" && !Array.isArray((e as any).pressures) ? ({ ...e, pressures: [], simulatePressure: true } as ExcalidrawElement) : e,
+		e.type === "freedraw" && !Array.isArray(e.pressures) ? { ...e, pressures: [], simulatePressure: true } : e,
 	);
 }

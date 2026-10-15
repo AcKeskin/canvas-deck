@@ -9,7 +9,7 @@ export interface InkLayerProps {
 	engine: RefObject<CanvasEngine | null>;
 	tool: InkTool | null;
 	strokes: Stroke[];
-	onStroke(s: Stroke): void;
+	onStroke: (s: Stroke) => void;
 }
 
 /** Pen width on screen at the time of drawing; it then scales with the camera. */
@@ -92,7 +92,7 @@ export function InkLayer({ engine, tool, strokes, onStroke }: InkLayerProps) {
 		let raf = 0;
 		let shown = false;
 		const draw = () => {
-			raf = requestAnimationFrame(draw);
+			raf = window.requestAnimationFrame(draw);
 			const c = canvas.current;
 			const en = engine.current;
 			const { tool, strokes } = state.current;
@@ -117,8 +117,8 @@ export function InkLayer({ engine, tool, strokes, onStroke }: InkLayerProps) {
 			if (laserOn) drawLaser(ctx, dots, now);
 			shown = all.length > 0 || laserOn;
 		};
-		raf = requestAnimationFrame(draw);
-		return () => cancelAnimationFrame(raf);
+		raf = window.requestAnimationFrame(draw);
+		return () => window.cancelAnimationFrame(raf);
 	}, [engine]);
 
 	return <canvas ref={canvas} className="canvas-deck-ink" />;

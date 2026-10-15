@@ -4,6 +4,7 @@ import { isImagePath, pathFromDragText, renameImage } from "../canvas/vault-imag
 import { isNotePath, renameNote } from "../canvas/note-links";
 import { modalCodeEditor } from "../obsidian/code-editor";
 import { vaultNoteRenderer } from "../obsidian/note-renderer";
+import { ask } from "../obsidian/ask";
 import { vaultImageStore } from "../obsidian/vault-image-store";
 import type { CanvasEngine } from "../canvas/engine";
 import { parseDeck, serializeDeck } from "./deck-format";
@@ -68,7 +69,6 @@ export class DeckView extends TextFileView {
 
 	async onOpen() {
 		this.contentEl.addClass("canvas-deck-view");
-		this.contentEl.style.padding = "0";
 		this.registerDomEvent(this.contentEl, "drop", (e) => this.onDrop(e), { capture: true });
 	}
 
@@ -102,6 +102,7 @@ export class DeckView extends TextFileView {
 				notes={this.notes}
 				code={this.code}
 				theme={document.body.hasClass("theme-dark") ? "dark" : "light"}
+				ask={(label, value) => ask(this.app, label, value)}
 				onChange={(d) => {
 					this.deck = d;
 					this.requestSave();
@@ -132,7 +133,7 @@ export class DeckView extends TextFileView {
 		e.preventDefault();
 		e.stopPropagation();
 		const at = this.engine.sceneAt(e.clientX, e.clientY);
-		if (isImage) this.engine.insertImage(file.path, at);
+		if (isImage) void this.engine.insertImage(file.path, at);
 		else this.engine.insertNote(file.path, at);
 	}
 }
