@@ -1,10 +1,26 @@
-# canvas-deck
+# Canvas Deck
+
+Slide decks in Obsidian where every slide is an infinite canvas.
 
 A fully vibe-coded Obsidian plugin I made for myself, built with [contexture](https://github.com/AcKeskin/contexture).
 
-Canvas Deck makes slide decks in Obsidian where each slide is an infinite canvas. You draw on an Excalidraw canvas, mark a start frame, and save views on it. In present mode the deck steps through the slides and the views. A deck is a normal markdown note, so its titles and speaker notes stay searchable.
+Draw each slide on an Excalidraw canvas, mark a start frame, and save views on it. Present mode steps through the slides and flies to each view. A deck is a normal markdown note, so titles and speaker notes stay searchable.
 
 ![The deck editor: slide list, canvas with the start frame, and speaker notes](docs/screens/editor.png)
+
+## Install
+
+In Obsidian, open **Settings > Community plugins > Browse**, search for **Canvas Deck**, then install and enable it. Needs Obsidian 1.5.7 or newer.
+
+To install by hand, download `main.js`, `styles.css` and `manifest.json` from the [latest release](https://github.com/AcKeskin/canvas-deck/releases/latest) into `<vault>/.obsidian/plugins/canvas-deck/`, then enable **Canvas Deck**.
+
+## Quick start
+
+1. Run **New demo deck** from the command palette to see example slides, or **New deck** (or the ribbon icon) for an empty one.
+2. Draw on the canvas. The dashed box is the slide's start frame.
+3. Move to a spot you want to show and click **+ Save view**. Views are the steps inside a slide.
+4. Type speaker notes in the box at the bottom.
+5. Run **Present deck from start**. Use the arrow keys to step, and press **?** for all keys.
 
 ## Features
 
@@ -21,8 +37,8 @@ Canvas Deck makes slide decks in Obsidian where each slide is an infinite canvas
 - Templates: save a slide as a template and start new slides from it.
 - PDF export: one page per start frame, optionally one per saved view, optionally with speaker notes.
 - HTML export: one file that presents the deck in any browser, with speaker notes and live embeds.
-- Offline fonts: the hand-drawn fonts ship inside the plugin and are written to its folder on first load.
-- Should work on mobile (touch and pen), but not tested on a real device yet.
+- Offline fonts: the hand-drawn fonts ship inside the plugin.
+- Should work on mobile (touch and pen), but it is not tested on a real device yet.
 
 ## Screenshots
 
@@ -34,25 +50,15 @@ Taken in the browser test harness, so they use plain styles instead of your Obsi
 | **All slides and views (G)** | **Keys (?)** |
 | ![Grid of slide thumbnails with their saved views](docs/screens/grid.png) | ![Help overlay listing present-mode keys](docs/screens/keys.png) |
 
-## Install
-
-The plugin is not in the community plugin store yet, and there is no BRAT setup. Install it by hand:
-
-1. Build it (see Development), or download `main.js`, `styles.css` and `manifest.json` from the latest GitHub release.
-2. Copy those three into `<vault>/.obsidian/plugins/canvas-deck/`. The fonts come with `main.js`.
-3. In Obsidian, go to Settings > Community plugins and enable **Canvas Deck**.
-
 ## Usage
 
-Run **New deck** from the command palette or click the ribbon icon. **New demo deck** makes a deck with example slides.
-
-- Left: the slide list. Click to open, double-click to rename, drag or use ↑/↓ to reorder.
+- Left: the slide list. Click to open, double-click to rename, and drag or use ↑/↓ to reorder.
 - Middle: the canvas. Draw anywhere, inside or outside the start frame.
-- Top: the aspect menu, **Edit frame**, **+ Save view**, and the saved views. Click a view to fly to it.
+- Top: the aspect menu, **Edit frame**, **+ Save view**, and the saved views. Click a view to fly to it, double-click to rename it.
 - Bottom: speaker notes. After you click a view, the box edits that view's notes. Click **Frame** to go back to the slide notes.
 - To embed a note, drag it from the file explorer onto the canvas, or run **Insert note**. In the editor, click it to select and click again to open it. In present mode one click leaves present mode and opens the note.
 - To add a code card, run **Insert code card**. To edit it, click its link icon, or select it and run **Edit code card**. In the editor, click the middle of a card to use it; in present mode it works right away. Cards run in a sandbox: scripts run, but they have no access to the vault or Obsidian.
-- To embed a web page, run **Insert web embed** and paste a URL. YouTube, Vimeo and CodePen links load their player. In the editor, click the middle of the embed to use it. In present mode it takes clicks and scrolls right away. A URL pasted onto the canvas also becomes an embed.
+- To embed a web page, run **Insert web embed** and paste a URL. YouTube, Vimeo and CodePen links load their player. In the editor, click the middle of the embed to use it. In present mode it takes clicks and scrolls right away.
 - To link, select objects and run **Link selection to slide or view**. You can also type `#cdeck:<slideId>` or `#cdeck:<slideId>/<viewId>` in Excalidraw's link box.
 - The template folder is set in the plugin settings.
 
@@ -129,11 +135,18 @@ The `%%` comment hides the data in reading view. Titles and notes stay searchabl
 - Local storage and dynamic code: Excalidraw may keep editor preferences in local storage, and its font tools build some code at runtime. The plugin's own data uses Obsidian's APIs.
 - Code cards run your HTML and scripts in a sandboxed frame that cannot reach the vault or Obsidian.
 
+## Known limits
+
+- Chinese, Japanese and Korean text has no offline hand-drawn font. It loads from the web, and uses a system font when offline.
+- Tested mostly in the browser test page, less in Obsidian itself.
+- `main.js` is about 9 MB, mostly Excalidraw. Obsidian Sync Standard does not sync files over 5 MB, so install the plugin on each device.
+- Web embeds: sites that forbid framing (X-Frame-Options or CSP frame-ancestors) show a blank box. After you click into an embed in present mode, move the pointer off it to step with the keys again.
+
 ## Development
 
 ```
 npm ci
-npm run build   # main.js, styles.css and fonts/
+npm run build   # main.js and styles.css
 npm run dev     # watch build
 npm test        # unit tests (vitest)
 ```
@@ -161,14 +174,6 @@ Planning docs written while building it are in `.claude/visions`, `.claude/specs
 ### Releasing
 
 To release, bump `version` in `manifest.json`, `package.json` and `versions.json`, and merge to main. The Release workflow creates the GitHub release for that version.
-
-## Known limits
-
-- Not in the community plugin store yet.
-- Chinese, Japanese and Korean text has no offline hand-drawn font. It loads from the web, and uses a system font when offline.
-- Tested mostly in the browser test page, less in Obsidian itself.
-- `main.js` is about 9 MB, mostly Excalidraw. Obsidian Sync Standard does not sync files over 5 MB, so install the plugin on each device.
-- Web embeds: sites that forbid framing (X-Frame-Options or CSP frame-ancestors) show a blank box. After you click into an embed in present mode, move the pointer off it to step with the keys again.
 
 ## License
 
