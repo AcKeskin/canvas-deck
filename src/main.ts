@@ -42,7 +42,10 @@ export default class CanvasDeckPlugin extends Plugin {
 		this.deckCommand("save-view", "Save current view", (v) => v.engine?.saveCurrentView(`View ${(v.engine?.slide.views.length ?? 0) + 1}`));
 		this.deckCommand("insert-image", "Insert vault image", (v) => {
 			const files = this.app.vault.getFiles().filter((f) => isImagePath(f.path));
-			new FilePicker(this.app, "Pick an image", files, (f) => void v.engine?.insertImage(f.path).catch(() => new Notice(`Cannot insert ${f.path}.`))).open();
+			new FilePicker(this.app, "Pick an image", files, (f) => void v.engine?.insertImage(f.path).catch((err) => {
+				console.error("Canvas Deck: cannot insert image", err);
+				new Notice(`Cannot insert ${f.path}.`);
+			})).open();
 		});
 		this.deckCommand("insert-note", "Insert note", (v) => {
 			const files = this.app.vault.getMarkdownFiles().filter((f) => f !== v.file);

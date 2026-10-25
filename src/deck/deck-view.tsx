@@ -133,7 +133,10 @@ export class DeckView extends TextFileView {
 		e.preventDefault();
 		e.stopPropagation();
 		const at = this.engine.sceneAt(e.clientX, e.clientY);
-		if (isImage) void this.engine.insertImage(file.path, at).catch(() => new Notice(`Cannot insert ${file.path}.`));
+		if (isImage) void this.engine.insertImage(file.path, at).catch((err) => {
+			console.error("Canvas Deck: cannot insert image", err);
+			new Notice(`Cannot insert ${file.path}.`);
+		});
 		else this.engine.insertNote(file.path, at);
 	}
 }
