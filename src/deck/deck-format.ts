@@ -57,6 +57,7 @@ function splitFrontmatter(text: string): { frontmatter: string[]; body: string }
 
 function splitHeader(chunk: string): { title: string; notes: string } {
 	const lines = chunk.trim().split("\n");
-	if (lines[0]?.startsWith("## ")) return { title: lines[0].slice(3).trim(), notes: lines.slice(1).join("\n").trim() };
+	const header = lines[0]?.match(/^##(?:[ \t]+(.*))?$/);
+	if (header) return { title: (header[1] ?? "").trim(), notes: lines.slice(1).join("\n").trim() };
 	return { title: "", notes: lines.join("\n").trim() };
 }
