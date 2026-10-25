@@ -2,6 +2,7 @@
 
 | Slug | Current | Status | Created | Description |
 |------|---------|--------|---------|-------------|
+| deck-title-empty | v1 | active | 2026-10-25 | Accept a bare ## line as an empty slide title so it does not gain stray text after a reload |
 | image-errors | v1 | in-progress | 2026-10-25 | Failed image inserts and pasted-image saves show an Obsidian notice instead of failing silently |
 | confirm-slide-delete | v1 | active | 2026-10-25 | Ask before the slide list's trash button deletes a slide |
 | deck-store | v1 | shipped | 2026-10-14 | Deck file format as a markdown note with searchable speaker notes and per-slide canvas data blocks |

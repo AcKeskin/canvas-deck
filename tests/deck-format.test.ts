@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import { createSlide } from "../src/canvas/slide-data";
+import { createSlide, serializeSlide } from "../src/canvas/slide-data";
 import { parseDeck, serializeDeck } from "../src/deck/deck-format";
 import type { Deck } from "../src/deck/deck-model";
 
@@ -30,6 +30,27 @@ describe("deck format", () => {
 		expect(md).toContain("## Big diagram");
 		const outsideBlocks = md.replace(/%%cdeck[^\n]*\n[^\n]*\n%%/g, "");
 		expect(outsideBlocks).not.toContain('"elements"');
+	});
+
+	test("an empty title round-trips with empty notes", () => {
+		const d: Deck = { frontmatter: [], slides: [{ id: "a", title: "", notes: "", data: createSlide() }] };
+		expect(parseDeck(serializeDeck(d))).toEqual(d);
+	});
+
+	test("an empty title round-trips with notes", () => {
+		const d: Deck = { frontmatter: [], slides: [{ id: "a", title: "", notes: "Some notes.", data: createSlide() }] };
+		expect(parseDeck(serializeDeck(d))).toEqual(d);
+	});
+
+	test("a ### first line is not a title", () => {
+		const d = parseDeck(`### Sub
+
+%%cdeck x
+${serializeSlide(createSlide())}
+%%
+`);
+		expect(d.slides[0].title).toBe("");
+		expect(d.slides[0].notes).toBe("### Sub");
 	});
 
 	test("view notes round-trip", () => {
