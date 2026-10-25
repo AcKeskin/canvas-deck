@@ -120,6 +120,7 @@ if (params.has("deck")) {
 			notes={notes}
 			code={code}
 			ask={(label, value) => Promise.resolve(window.prompt(label, value))}
+			confirm={(message) => Promise.resolve(window.confirm(message))}
 			onChange={(d) => {
 				window.harness.deck = d;
 				window.harness.saves++;
