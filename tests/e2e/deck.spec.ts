@@ -29,8 +29,21 @@ test("add, rename, reorder and delete slides; notes save", async ({ page }) => {
 	const deck = await page.evaluate(() => window.harness.deck!);
 	expect(deck.slides.map((s) => s.title)).toEqual(["My new slide", "Canvas Deck", "How it works", "A big diagram"]);
 	expect(deck.slides[0].notes).toBe("remember this");
+
+	// Delete asks first; Cancel keeps the slide.
+	let asked = "";
+	page.once("dialog", (d) => {
+		asked = d.message();
+		void d.dismiss();
+	});
+	await page.getByTitle("Delete slide").click();
+	await expect.poll(() => asked).toBe('Delete slide "My new slide"?');
+	await expect(page.locator(".canvas-deck-list-item")).toHaveCount(4);
+
+	page.once("dialog", (d) => void d.accept());
 	await page.getByTitle("Delete slide").click();
 	await expect(page.locator(".canvas-deck-list-item")).toHaveCount(3);
+	expect((await page.evaluate(() => window.harness.deck!)).slides.map((s) => s.title)).toEqual(["Canvas Deck", "How it works", "A big diagram"]);
 });
 
 test("drawing on a slide and saving a view survive save and reload", async ({ page }) => {
