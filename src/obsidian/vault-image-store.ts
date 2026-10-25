@@ -1,4 +1,4 @@
-import { arrayBufferToBase64, base64ToArrayBuffer, type App } from "obsidian";
+import { arrayBufferToBase64, base64ToArrayBuffer, Notice, type App } from "obsidian";
 import type { ImageStore } from "../canvas/engine";
 import { extFromMime, mimeOf } from "../canvas/vault-images";
 
@@ -11,10 +11,15 @@ export function vaultImageStore(app: App, sourcePath: () => string | undefined):
 			return `data:${mimeOf(path)};base64,${arrayBufferToBase64(await app.vault.readBinary(file))}`;
 		},
 		save: async (dataURL, mimeType) => {
-			const name = `Pasted image ${window.moment().format("YYYYMMDDHHmmss")}.${extFromMime(mimeType)}`;
-			const path = await app.fileManager.getAvailablePathForAttachment(name, sourcePath());
-			const file = await app.vault.createBinary(path, base64ToArrayBuffer(dataURL.split(",")[1]));
-			return file.path;
+			try {
+				const name = `Pasted image ${window.moment().format("YYYYMMDDHHmmss")}.${extFromMime(mimeType)}`;
+				const path = await app.fileManager.getAvailablePathForAttachment(name, sourcePath());
+				const file = await app.vault.createBinary(path, base64ToArrayBuffer(dataURL.split(",")[1]));
+				return file.path;
+			} catch (e) {
+				new Notice("Cannot save the pasted image to the vault. It stays on the slide until the deck closes.");
+				throw e;
+			}
 		},
 	};
 }
