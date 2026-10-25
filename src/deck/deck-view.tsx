@@ -1,7 +1,7 @@
 import { Notice, TextFileView } from "obsidian";
 import { createRoot, type Root } from "react-dom/client";
-import { isImagePath, pathFromDragText, renameImage } from "../canvas/vault-images";
-import { isNotePath, renameNote } from "../canvas/note-links";
+import { isImagePath, pathFromDragText } from "../canvas/vault-images";
+import { isNotePath } from "../canvas/note-links";
 import { modalCodeEditor } from "../obsidian/code-editor";
 import { vaultNoteRenderer } from "../obsidian/note-renderer";
 import { ask } from "../obsidian/ask";
@@ -10,7 +10,7 @@ import { vaultImageStore } from "../obsidian/vault-image-store";
 import type { CanvasEngine } from "../canvas/engine";
 import { parseDeck, serializeDeck } from "./deck-format";
 import { DeckEditor, type DeckHandle } from "./DeckEditor";
-import type { Deck } from "./deck-model";
+import { renameDeckLinks, type Deck } from "./deck-model";
 
 export const DECK_VIEW = "canvas-deck";
 
@@ -80,14 +80,9 @@ export class DeckView extends TextFileView {
 	/** Updates image and note links after a vault rename. */
 	renameLinks(oldPath: string, newPath: string) {
 		if (!this.deck) return;
-		let changed = false;
-		const slides = this.deck.slides.map((s) => {
-			const data = renameNote(renameImage(s.data, oldPath, newPath), oldPath, newPath);
-			if (data !== s.data) changed = true;
-			return data === s.data ? s : { ...s, data };
-		});
-		if (!changed) return;
-		this.deck = { ...this.deck, slides };
+		const next = renameDeckLinks(this.deck, oldPath, newPath);
+		if (next === this.deck) return;
+		this.deck = next;
 		this.requestSave();
 		this.mount();
 	}
