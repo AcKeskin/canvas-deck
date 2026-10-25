@@ -52,3 +52,37 @@ test("pasted image is saved to the vault and linked", async ({ page }) => {
 	const images = await page.evaluate(() => window.harness.engine!.slide.images);
 	expect(images).toEqual({ pasted1: "attachments/pasted-1.png" });
 });
+
+test("failed pasted-image save is reported once and not retried", async ({ page }) => {
+	const errors: Error[] = [];
+	page.on("pageerror", (e) => errors.push(e));
+	await page.goto("/");
+	await page.waitForFunction(() => window.harness.engine !== null);
+	await page.evaluate(() => {
+		window.harness.failSave = true;
+		const e = window.harness.engine!;
+		const dataURL = window.harness.files.get("pics/dot.png")!;
+		e.api.addFiles([{ id: "pasted1", dataURL, mimeType: "image/png", created: 1 } as any]);
+		e.api.updateScene({
+			elements: [
+				...e.api.getSceneElements(),
+				{ ...e.api.getSceneElements()[0], type: "image", id: "img1", fileId: "pasted1", x: 0, y: 0, width: 20, height: 10 } as any,
+			].filter(Boolean),
+		});
+	});
+	await page.waitForFunction(() => window.harness.saveCalls === 1);
+	for (const x of [30, 60]) {
+		await page.evaluate((x) => {
+			const e = window.harness.engine!;
+			e.api.updateScene({ elements: e.api.getSceneElements().map((el) => (el.id === "img1" ? { ...el, x, version: el.version + 1, versionNonce: el.versionNonce + 1 } : el)) });
+		}, x);
+		await page.waitForTimeout(100);
+	}
+	const state = await page.evaluate(() => ({
+		saveCalls: window.harness.saveCalls,
+		images: window.harness.engine!.slide.images,
+		onCanvas: window.harness.engine!.api.getSceneElements().some((el) => el.id === "img1"),
+	}));
+	expect(state).toEqual({ saveCalls: 1, images: {}, onCanvas: true });
+	expect(errors).toEqual([]);
+});

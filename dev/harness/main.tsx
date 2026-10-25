@@ -28,6 +28,8 @@ const files = new Map<string, string>([["pics/dot.png", DOT]]);
 const store: ImageStore = {
 	load: async (p) => files.get(p) ?? null,
 	save: async (dataURL) => {
+		window.harness.saveCalls++;
+		if (window.harness.failSave) throw new Error("save failed");
 		const p = `attachments/pasted-${files.size}.png`;
 		files.set(p, dataURL);
 		return p;
@@ -71,6 +73,9 @@ declare global {
 			codeEdits: string[];
 			nextCode: string | null;
 			saves: number;
+			/** Makes `store.save` reject, like a read-only vault folder. */
+			failSave: boolean;
+			saveCalls: number;
 			freeDrawPath: typeof getFreeDrawSvgPath;
 			deck?: Deck;
 			handle?: DeckHandle;
@@ -92,6 +97,8 @@ window.harness = {
 	codeEdits: [],
 	nextCode: null,
 	saves: 0,
+	failSave: false,
+	saveCalls: 0,
 	freeDrawPath: getFreeDrawSvgPath,
 	serialize: serializeDeck,
 	parse: parseDeck,

@@ -44,6 +44,7 @@ export class CanvasEngine {
 	private _slide: SlideData;
 	private sceneVersion = -1;
 	private saving = new Set<string>();
+	private failedSaves = new Set<string>();
 	private motion: MotionSnapshot | null = null;
 	private prepareTimer = 0;
 
@@ -110,11 +111,15 @@ export class CanvasEngine {
 
 	private async saveFile(id: FileId, files: BinaryFiles) {
 		const file = files[id];
-		if (!file || this.saving.has(id) || !this._slide.elements.some((e) => e.type === "image" && e.fileId === id)) return;
+		if (!file || this.saving.has(id) || this.failedSaves.has(id) || !this._slide.elements.some((e) => e.type === "image" && e.fileId === id)) return;
 		this.saving.add(id);
 		try {
 			const path = await this.store.save(file.dataURL, file.mimeType);
 			this.update({ ...this._slide, images: { ...this._slide.images, [id]: path } });
+		} catch (e) {
+			// The store already told the user; a retry on every change would only repeat the failure.
+			this.failedSaves.add(id);
+			console.error("Canvas Deck: cannot save pasted image", e);
 		} finally {
 			this.saving.delete(id);
 		}
