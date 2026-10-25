@@ -25,6 +25,8 @@ export interface DeckEditorProps {
 	theme?: "light" | "dark";
 	/** Asks for a name; used to rename slides and views. Without it, double-click renaming is off. */
 	ask?: (label: string, value: string) => Promise<string | null>;
+	/** Asks before a slide is deleted. Without it, slides are deleted at once. */
+	confirm?: (message: string) => Promise<boolean>;
 	onChange: (deck: Deck) => void;
 	onReady?: (handle: DeckHandle) => void;
 	/** The current slide's canvas, for commands that act on it. */
@@ -32,7 +34,7 @@ export interface DeckEditorProps {
 }
 
 /** Deck editing screen: slide list, canvas, saved views and speaker notes. */
-export function DeckEditor({ initial, images, notes, code, theme, ask, onChange, onReady, onEngine }: DeckEditorProps) {
+export function DeckEditor({ initial, images, notes, code, theme, ask, confirm, onChange, onReady, onEngine }: DeckEditorProps) {
 	const [deck, setDeck] = useState(initial);
 	const [current, setCurrent] = useState(0);
 	const [presenting, setPresenting] = useState<number | null>(null);
@@ -70,6 +72,13 @@ export function DeckEditor({ initial, images, notes, code, theme, ask, onChange,
 
 	const edit = (fn: (d: Deck) => Deck) => setDeck(fn);
 	const select = (i: number) => setCurrent(Math.max(0, Math.min(i, deck.slides.length - 1)));
+
+	const deleteCurrent = async () => {
+		const index = current;
+		if (confirm && !(await confirm(`Delete slide "${slide.title || "Untitled"}"?`))) return;
+		edit((d) => deleteSlide(d, index));
+		select(index - 1);
+	};
 
 	// Presenter's canvas is gone after exit; point commands back at the editor's.
 	const exitPresent = useCallback(() => {
@@ -145,10 +154,7 @@ export function DeckEditor({ initial, images, notes, code, theme, ask, onChange,
 					edit((d) => duplicateSlide(d, current));
 					setCurrent(current + 1);
 				}}
-				onDelete={() => {
-					edit((d) => deleteSlide(d, current));
-					select(current - 1);
-				}}
+				onDelete={() => void deleteCurrent()}
 				onMove={(from, to) => {
 					edit((d) => moveSlide(d, from, to));
 					select(to);

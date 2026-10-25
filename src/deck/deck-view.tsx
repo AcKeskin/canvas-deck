@@ -5,6 +5,7 @@ import { isNotePath, renameNote } from "../canvas/note-links";
 import { modalCodeEditor } from "../obsidian/code-editor";
 import { vaultNoteRenderer } from "../obsidian/note-renderer";
 import { ask } from "../obsidian/ask";
+import { confirm } from "../obsidian/confirm";
 import { vaultImageStore } from "../obsidian/vault-image-store";
 import type { CanvasEngine } from "../canvas/engine";
 import { parseDeck, serializeDeck } from "./deck-format";
@@ -103,6 +104,7 @@ export class DeckView extends TextFileView {
 				code={this.code}
 				theme={document.body.hasClass("theme-dark") ? "dark" : "light"}
 				ask={(label, value) => ask(this.app, label, value)}
+				confirm={(message) => confirm(this.app, message)}
 				onChange={(d) => {
 					this.deck = d;
 					this.requestSave();
