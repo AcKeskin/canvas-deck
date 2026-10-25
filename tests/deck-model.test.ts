@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { addSlide, createDeck, deleteSlide, duplicateSlide, insertSlide, moveSlide, updateSlide } from "../src/deck/deck-model";
+import type { ExcalidrawElement, FileId } from "@excalidraw/excalidraw/element/types";
+import { addSlide, createDeck, deleteSlide, duplicateSlide, insertSlide, moveSlide, renameDeckLinks, updateSlide } from "../src/deck/deck-model";
 
 const titles = (d: { slides: { title: string }[] }) => d.slides.map((s) => s.title);
 
@@ -45,5 +46,29 @@ describe("deck model", () => {
 	test("update by id", () => {
 		const id = d3.slides[1].id;
 		expect(updateSlide(d3, id, { notes: "x" }).slides[1].notes).toBe("x");
+	});
+
+	describe("rename links", () => {
+		const note = { id: "n1", type: "embeddable", link: "obsidian-note:notes/a.md" } as unknown as ExcalidrawElement;
+		const withImage = { ...d3.slides[0], data: { ...d3.slides[0].data, images: { ["f1" as FileId]: "pics/a.png" } } };
+		const withNote = { ...d3.slides[1], data: { ...d3.slides[1].data, elements: [note] } };
+		const deck = { ...d3, slides: [withImage, withNote, d3.slides[2]] };
+
+		test("renames an image path and keeps untouched slides", () => {
+			const next = renameDeckLinks(deck, "pics/a.png", "art/a.png");
+			expect(next.slides[0].data.images).toEqual({ f1: "art/a.png" });
+			expect(next.slides[1]).toBe(deck.slides[1]);
+			expect(next.slides[2]).toBe(deck.slides[2]);
+		});
+
+		test("renames a note link", () => {
+			const next = renameDeckLinks(deck, "notes/a.md", "notes/b.md");
+			expect(next.slides[1].data.elements[0].link).toBe("obsidian-note:notes/b.md");
+			expect(next.slides[0]).toBe(deck.slides[0]);
+		});
+
+		test("returns the same deck when nothing matches", () => {
+			expect(renameDeckLinks(deck, "none.png", "other.png")).toBe(deck);
+		});
 	});
 });

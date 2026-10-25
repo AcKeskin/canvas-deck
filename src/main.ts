@@ -5,7 +5,7 @@ import { isImagePath } from "./canvas/vault-images";
 import { isWebLink } from "./canvas/web-embeds";
 import { DECK_FLAG, parseDeck, serializeDeck } from "./deck/deck-format";
 import { linkTargets, type LinkTarget } from "./deck/deck-links";
-import { createDeck, type Deck } from "./deck/deck-model";
+import { createDeck, renameDeckLinks, type Deck } from "./deck/deck-model";
 import { DECK_VIEW, DeckView } from "./deck/deck-view";
 import { demoDeck } from "./dev/demo-deck";
 import { installFonts, useLocalFonts } from "./obsidian/fonts";
@@ -135,6 +135,7 @@ export default class CanvasDeckPlugin extends Plugin {
 			this.app.vault.on("rename", (file, oldPath) => {
 				if (!isImagePath(file.path) && !isNotePath(file.path)) return;
 				this.app.workspace.getLeavesOfType(DECK_VIEW).forEach((l) => (l.view as DeckView).renameLinks(oldPath, file.path));
+				void this.renameInClosedDecks(oldPath, file.path);
 			}),
 		);
 	}
@@ -150,6 +151,25 @@ export default class CanvasDeckPlugin extends Plugin {
 				return true;
 			},
 		});
+	}
+
+	/** Open deck views follow a rename themselves; this fixes the deck notes that are not open. */
+	private async renameInClosedDecks(oldPath: string, newPath: string) {
+		const open = new Set(this.app.workspace.getLeavesOfType(DECK_VIEW).map((l) => (l.view as DeckView).file?.path));
+		for (const file of this.app.vault.getMarkdownFiles()) {
+			if (open.has(file.path) || !this.isDeck(file)) continue;
+			try {
+				if (!(await this.app.vault.cachedRead(file)).includes(oldPath)) continue;
+				await this.app.vault.process(file, (text) => {
+					const deck = parseDeck(text);
+					const next = renameDeckLinks(deck, oldPath, newPath);
+					return next === deck ? text : serializeDeck(next);
+				});
+			} catch (e) {
+				console.error(`Canvas Deck: cannot update links in ${file.path}`, e);
+				new Notice(`Cannot update links in ${file.path}.`);
+			}
+		}
 	}
 
 	private isDeck(file: TFile): boolean {

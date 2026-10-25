@@ -1,3 +1,5 @@
+import { renameNote } from "../canvas/note-links";
+import { renameImage } from "../canvas/vault-images";
 import { createSlide, newId, type SlideData } from "../canvas/slide-data";
 
 export interface DeckSlide {
@@ -63,4 +65,16 @@ export function moveSlide(deck: Deck, from: number, to: number): Deck {
 
 export function updateSlide(deck: Deck, id: string, patch: Partial<Omit<DeckSlide, "id">>): Deck {
 	return { ...deck, slides: deck.slides.map((s) => (s.id === id ? { ...s, ...patch } : s)) };
+}
+
+/** Points image and note links at a new vault path. Returns the same deck if nothing changed. */
+export function renameDeckLinks(deck: Deck, oldPath: string, newPath: string): Deck {
+	let changed = false;
+	const slides = deck.slides.map((s) => {
+		const data = renameNote(renameImage(s.data, oldPath, newPath), oldPath, newPath);
+		if (data === s.data) return s;
+		changed = true;
+		return { ...s, data };
+	});
+	return changed ? { ...deck, slides } : deck;
 }
