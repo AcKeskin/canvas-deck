@@ -131,3 +131,11 @@ test("? shows the keys", async ({ page }) => {
 	await expect(page.locator(".canvas-deck-help")).toHaveCount(0);
 	await expect(page.locator(".canvas-deck-presenter")).toBeVisible();
 });
+
+test("H shows every key", async ({ page }) => {
+	await page.keyboard.press("h");
+	await expect(page.locator(".canvas-deck-help")).toContainText("PageDown");
+	await expect(page.locator(".canvas-deck-help")).toContainText("Backspace");
+	await page.keyboard.press("h");
+	await expect(page.locator(".canvas-deck-help")).toHaveCount(0);
+});

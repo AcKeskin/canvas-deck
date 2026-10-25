@@ -252,8 +252,8 @@ export function Presenter({ deck, images, notes, start = 0, theme, onExit, onEng
 }
 
 const HELP: [string, string][] = [
-	["→ Space", "Next view or slide"],
-	["←", "Back"],
+	["→ ↓ Space Enter PageDown", "Next view or slide"],
+	["← ↑ Backspace PageUp", "Back"],
 	["Home", "Start frame"],
 	["G", "All slides and views"],
 	["N", "Speaker notes"],
@@ -261,6 +261,6 @@ const HELP: [string, string][] = [
 	["L", "Laser pointer"],
 	["K", "Keep the ink on the slide"],
 	["E", "Edit the slide (Esc to stop)"],
-	["?", "This help"],
+	["? H", "This help"],
 	["Esc", "Close, or exit"],
 ];
