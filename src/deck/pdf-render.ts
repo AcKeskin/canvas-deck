@@ -43,12 +43,11 @@ async function renderPage(data: SlideData, page: PdfPage, files: BinaryFiles): P
 	const fontSize = Math.round(size.width / 48);
 	const font = `${fontSize}px sans-serif`;
 	const lineHeight = Math.round(fontSize * 1.4);
-	const canvas = document.createElement("canvas");
+	const measure = new OffscreenCanvas(1, 1).getContext("2d")!;
+	measure.font = font;
+	const lines = page.notes ? wrapText(page.notes, size.width - 2 * fontSize, (s) => measure.measureText(s).width) : [];
+	const canvas = new OffscreenCanvas(size.width, size.height + (lines.length ? lines.length * lineHeight + 2 * fontSize : 0));
 	const ctx = canvas.getContext("2d")!;
-	ctx.font = font;
-	const lines = page.notes ? wrapText(page.notes, size.width - 2 * fontSize, (s) => ctx.measureText(s).width) : [];
-	canvas.width = size.width;
-	canvas.height = size.height + (lines.length ? lines.length * lineHeight + 2 * fontSize : 0);
 	ctx.fillStyle = "#ffffff";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	ctx.drawImage(picture, 0, 0);
@@ -61,8 +60,7 @@ async function renderPage(data: SlideData, page: PdfPage, files: BinaryFiles): P
 		lines.forEach((l, i) => ctx.fillText(l, fontSize, size.height + fontSize + i * lineHeight));
 	}
 
-	const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.9));
-	if (!blob) throw new Error("Could not draw a page");
+	const blob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.9 });
 	return { jpeg: new Uint8Array(await blob.arrayBuffer()), width: canvas.width, height: canvas.height };
 }
 

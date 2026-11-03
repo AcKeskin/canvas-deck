@@ -31,17 +31,14 @@ test("add, rename, reorder and delete slides; notes save", async ({ page }) => {
 	expect(deck.slides[0].notes).toBe("remember this");
 
 	// Delete asks first; Cancel keeps the slide.
-	let asked = "";
-	page.once("dialog", (d) => {
-		asked = d.message();
-		void d.dismiss();
-	});
+	const dialog = page.getByRole("dialog");
 	await page.getByTitle("Delete slide").click();
-	await expect.poll(() => asked).toBe('Delete slide "My new slide"?');
+	await expect(dialog).toContainText('Delete slide "My new slide"?');
+	await dialog.getByRole("button", { name: "Cancel" }).click();
 	await expect(page.locator(".canvas-deck-list-item")).toHaveCount(4);
 
-	page.once("dialog", (d) => void d.accept());
 	await page.getByTitle("Delete slide").click();
+	await dialog.getByRole("button", { name: "Delete" }).click();
 	await expect(page.locator(".canvas-deck-list-item")).toHaveCount(3);
 	expect((await page.evaluate(() => window.harness.deck!)).slides.map((s) => s.title)).toEqual(["Canvas Deck", "How it works", "A big diagram"]);
 });

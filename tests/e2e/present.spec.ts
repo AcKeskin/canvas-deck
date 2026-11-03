@@ -71,6 +71,22 @@ test("P draws ink and K keeps it on the slide", async ({ page }) => {
 	expect(await freedraws(page, 0)).toBe(1);
 });
 
+test("wheel still pans with the pen on, once per tick", async ({ page }) => {
+	await page.keyboard.press("p");
+	const cam = () => page.evaluate(() => window.harness.engine!.camera.camera);
+	const before = await cam();
+	await page.mouse.move(800, 450);
+	await page.mouse.wheel(0, 100);
+	await expect.poll(async () => (await cam()).scrollY).not.toBe(before.scrollY);
+	const moved = (await cam()).scrollY - before.scrollY;
+	await page.keyboard.press("p");
+	const off = await cam();
+	await page.mouse.wheel(0, 100);
+	await expect.poll(async () => (await cam()).scrollY).not.toBe(off.scrollY);
+	// Same distance as with the pen off, so the wheel isn't handled twice.
+	expect((await cam()).scrollY - off.scrollY).toBeCloseTo(moved, 3);
+});
+
 test("ink not kept is gone after the next slide", async ({ page }) => {
 	await page.getByLabel("Pen").click();
 	await stroke(page, 300);
