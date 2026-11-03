@@ -26,7 +26,7 @@ export interface DeckEditorProps {
 	/** Asks for a name; used to rename slides and views. Without it, double-click renaming is off. */
 	ask?: (label: string, value: string) => Promise<string | null>;
 	/** Asks before a slide is deleted. Without it, slides are deleted at once. */
-	confirm?: (message: string) => Promise<boolean>;
+	confirmDelete?: (message: string) => Promise<boolean>;
 	onChange: (deck: Deck) => void;
 	onReady?: (handle: DeckHandle) => void;
 	/** The current slide's canvas, for commands that act on it. */
@@ -34,7 +34,7 @@ export interface DeckEditorProps {
 }
 
 /** Deck editing screen: slide list, canvas, saved views and speaker notes. */
-export function DeckEditor({ initial, images, notes, code, theme, ask, confirm, onChange, onReady, onEngine }: DeckEditorProps) {
+export function DeckEditor({ initial, images, notes, code, theme, ask, confirmDelete, onChange, onReady, onEngine }: DeckEditorProps) {
 	const [deck, setDeck] = useState(initial);
 	const [current, setCurrent] = useState(0);
 	const [presenting, setPresenting] = useState<number | null>(null);
@@ -75,7 +75,7 @@ export function DeckEditor({ initial, images, notes, code, theme, ask, confirm, 
 
 	const deleteCurrent = async () => {
 		const index = current;
-		if (confirm && !(await confirm(`Delete slide "${slide.title || "Untitled"}"?`))) return;
+		if (confirmDelete && !(await confirmDelete(`Delete slide "${slide.title || "Untitled"}"?`))) return;
 		edit((d) => deleteSlide(d, index));
 		select(index - 1);
 	};

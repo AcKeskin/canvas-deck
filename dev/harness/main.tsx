@@ -15,6 +15,7 @@ import type { PdfOptions } from "../../src/deck/pdf-plan";
 import { renderDeckPdf } from "../../src/deck/pdf-render";
 import { escapeHtml } from "../../src/deck/html-page";
 import { renderDeckHtml } from "../../src/deck/html-render";
+import { askText, askYesNo } from "./dialogs";
 
 // Fonts come from /fonts here, not the CDN (see vite.config.ts).
 window.EXCALIDRAW_ASSET_PATH = "/";
@@ -126,8 +127,8 @@ if (params.has("deck")) {
 			images={store}
 			notes={notes}
 			code={code}
-			ask={(label, value) => Promise.resolve(window.prompt(label, value))}
-			confirm={(message) => Promise.resolve(window.confirm(message))}
+			ask={askText}
+			confirmDelete={askYesNo}
 			onChange={(d) => {
 				window.harness.deck = d;
 				window.harness.saves++;

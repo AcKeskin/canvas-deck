@@ -26,8 +26,9 @@
 .canvas-deck-present-bar:hover { opacity: 1; }
 .canvas-deck-present-bar button.is-active { background: var(--interactive-accent, #6965db); color: var(--text-on-accent, #fff); }
 .canvas-deck-ink { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
-.canvas-deck-presenter.is-pen .excalidraw canvas { cursor: crosshair !important; }
-.canvas-deck-presenter.is-laser .excalidraw canvas { cursor: none !important; }
+/* With a tool on, the ink layer takes the pointer, so its cursor shows. */
+.canvas-deck-presenter.is-pen .canvas-deck-ink { pointer-events: auto; cursor: crosshair; }
+.canvas-deck-presenter.is-laser .canvas-deck-ink { pointer-events: auto; cursor: none; }
 .canvas-deck-grid { position: absolute; inset: 0; z-index: 20; overflow-y: auto; padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; align-content: start; background: var(--background-primary, #fff); }
 .canvas-deck-grid-item { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 2px solid transparent; border-radius: 8px; }
 .canvas-deck-grid-item.is-active { border-color: var(--interactive-accent, #6965db); }

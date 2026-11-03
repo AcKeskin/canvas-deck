@@ -72,12 +72,22 @@ export function InkLayer({ engine, tool, strokes, onStroke }: InkLayerProps) {
 			const r = host.getBoundingClientRect();
 			laser.current.push({ x: e.clientX - r.left, y: e.clientY - r.top, t: performance.now() });
 		};
+		// The ink layer covers the slide while a tool is on; pass the wheel on so pan and zoom still work.
+		const wheel = (e: WheelEvent) => {
+			const target = host.querySelector(".excalidraw canvas.interactive");
+			if (!target) return;
+			e.preventDefault();
+			target.dispatchEvent(new WheelEvent("wheel", e));
+		};
+		const ink = canvas.current;
 		const opts = { capture: true };
+		ink?.addEventListener("wheel", wheel, { passive: false });
 		host.addEventListener("pointerdown", down, opts);
 		host.addEventListener("pointermove", move, opts);
 		host.addEventListener("pointerup", up, opts);
 		host.addEventListener("pointercancel", up, opts);
 		return () => {
+			ink?.removeEventListener("wheel", wheel);
 			host.removeEventListener("pointerdown", down, opts);
 			host.removeEventListener("pointermove", move, opts);
 			host.removeEventListener("pointerup", up, opts);
