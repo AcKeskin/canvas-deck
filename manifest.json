@@ -1,7 +1,7 @@
 {
   "id": "canvas-deck",
   "name": "Canvas Deck",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "minAppVersion": "1.5.7",
   "description": "Slide decks where each slide is an infinite canvas.",
   "author": "Ali Can Keskin",
