@@ -11,6 +11,7 @@ import { demoDeck } from "./dev/demo-deck";
 import { installFonts, useLocalFonts } from "./obsidian/fonts";
 import { exportDeckHtml } from "./obsidian/html-export";
 import { exportDeckPdf } from "./obsidian/pdf-export";
+import { modalMathEditor } from "./obsidian/math-editor";
 import { vaultImageStore } from "./obsidian/vault-image-store";
 import { FONTS } from "virtual:fonts";
 import { CanvasDeckSettingTab, DEFAULT_SETTINGS, type CanvasDeckSettings } from "./settings";
@@ -58,6 +59,17 @@ export default class CanvasDeckPlugin extends Plugin {
 				return;
 			}
 			void v.engine.editCode();
+		});
+		this.deckCommand("insert-equation", "Insert equation", async (v) => {
+			const latex = await modalMathEditor(this.app).edit("");
+			if (latex) v.engine?.insertMath(latex);
+		});
+		this.deckCommand("edit-equation", "Edit equation", (v) => {
+			if (!v.engine?.selectedMath()) {
+				new Notice("Select an equation first.");
+				return;
+			}
+			void v.engine.editMath();
 		});
 		this.deckCommand("insert-web-embed", "Insert web embed", (v) => {
 			new UrlPrompt(this.app, (url) => {

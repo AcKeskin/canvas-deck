@@ -18,6 +18,8 @@ export interface SlideCanvasProps {
 	notes?: NoteRenderer;
 	/** Code card editor. Without it, the link icon on a code card does nothing. */
 	code?: CodeEditor;
+	/** Equation editor. Without it, double-click on an equation does what it does on any image. */
+	math?: CodeEditor;
 	/** Present mode: read-only, no editor UI, no frame outline. */
 	presenting?: boolean;
 	/** Present mode with the editor tools on. */
@@ -34,7 +36,7 @@ export interface SlideCanvasProps {
 }
 
 /** One slide as an Excalidraw canvas, with the start frame drawn on top. */
-export function SlideCanvas({ initial, images, notes, code, presenting, editing, theme, editFrame, keepAspect, onChange, onReady, onDeckLink }: SlideCanvasProps) {
+export function SlideCanvas({ initial, images, notes, code, math, presenting, editing, theme, editFrame, keepAspect, onChange, onReady, onDeckLink }: SlideCanvasProps) {
 	const engine = useRef<CanvasEngine | null>(null);
 	const host = useRef<HTMLDivElement>(null);
 	const down = useRef<{ x: number; y: number } | null>(null);
@@ -55,7 +57,7 @@ export function SlideCanvas({ initial, images, notes, code, presenting, editing,
 	const onApi = useCallback(
 		(api: ExcalidrawImperativeAPI) => {
 			if (engine.current) return;
-			const e = new CanvasEngine(api, images, initial, onChange, code);
+			const e = new CanvasEngine(api, images, initial, onChange, code, math);
 			engine.current = e;
 			if (host.current) e.enableMotion(host.current, () => theme === "dark");
 			api.onScrollChange((x, y, z) => updateFrame(x, y, z.value));
@@ -67,7 +69,7 @@ export function SlideCanvas({ initial, images, notes, code, presenting, editing,
 				onReady?.(e);
 			});
 		},
-		[images, initial, onChange, onReady, updateFrame, theme, code],
+		[images, initial, onChange, onReady, updateFrame, theme, code, math],
 	);
 
 	// Stable so Excalidraw's memo skips re-rendering on scroll.
@@ -100,6 +102,13 @@ export function SlideCanvas({ initial, images, notes, code, presenting, editing,
 			// A second finger means pinch, not a tap.
 			onPointerDownCapture={(e) => (down.current = e.isPrimary ? { x: e.clientX, y: e.clientY } : null)}
 			onPointerUpCapture={onPointerUp}
+			onDoubleClickCapture={(e) => {
+				if ((presenting && !editing) || !math) return;
+				const el = engine.current?.mathAt(e.clientX, e.clientY);
+				if (!el) return;
+				e.stopPropagation();
+				void engine.current?.editMath(el.id);
+			}}
 		>
 			<Excalidraw
 				excalidrawAPI={onApi}

@@ -57,6 +57,14 @@ const code: CodeEditor = {
 	},
 };
 
+/** Fake equation editor, same shape: `harness.nextMath` answers, null cancels. */
+const math: CodeEditor = {
+	edit: async (latex) => {
+		window.harness.mathEdits.push(latex);
+		return window.harness.nextMath;
+	},
+};
+
 const params = new URLSearchParams(location.search);
 const perf = Number(params.get("perf") ?? 0);
 const initial: SlideData = {
@@ -73,6 +81,8 @@ declare global {
 			opened: string[];
 			codeEdits: string[];
 			nextCode: string | null;
+			mathEdits: string[];
+			nextMath: string | null;
 			saves: number;
 			/** Makes `store.save` reject, like a read-only vault folder. */
 			failSave: boolean;
@@ -97,6 +107,8 @@ window.harness = {
 	opened,
 	codeEdits: [],
 	nextCode: null,
+	mathEdits: [],
+	nextMath: null,
 	saves: 0,
 	failSave: false,
 	saveCalls: 0,
@@ -127,6 +139,7 @@ if (params.has("deck")) {
 			images={store}
 			notes={notes}
 			code={code}
+			math={math}
 			ask={askText}
 			confirmDelete={askYesNo}
 			onChange={(d) => {
@@ -144,6 +157,7 @@ if (params.has("deck")) {
 			images={store}
 			notes={notes}
 			code={code}
+			math={math}
 			onChange={() => window.harness.saves++}
 			onReady={(e) => (window.harness.engine = e)}
 		/>,
