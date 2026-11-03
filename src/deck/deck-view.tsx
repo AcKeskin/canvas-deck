@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { isImagePath, pathFromDragText } from "../canvas/vault-images";
 import { isNotePath } from "../canvas/note-links";
 import { modalCodeEditor } from "../obsidian/code-editor";
+import { modalMathEditor } from "../obsidian/math-editor";
 import { vaultNoteRenderer } from "../obsidian/note-renderer";
 import { ask } from "../obsidian/ask";
 import { confirmDelete } from "../obsidian/confirm";
@@ -25,6 +26,7 @@ export class DeckView extends TextFileView {
 	private images = vaultImageStore(this.app, () => this.file?.path);
 	private notes = vaultNoteRenderer(this.app, () => this.file?.path);
 	private code = modalCodeEditor(this.app);
+	private math = modalMathEditor(this.app);
 
 	getViewType() {
 		return DECK_VIEW;
@@ -97,6 +99,7 @@ export class DeckView extends TextFileView {
 				images={this.images}
 				notes={this.notes}
 				code={this.code}
+				math={this.math}
 				theme={document.body.hasClass("theme-dark") ? "dark" : "light"}
 				ask={(label, value) => ask(this.app, label, value)}
 				confirmDelete={(message) => confirmDelete(this.app, message)}

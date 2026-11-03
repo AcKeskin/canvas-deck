@@ -22,6 +22,8 @@ export interface DeckEditorProps {
 	notes?: NoteRenderer;
 	/** Code card editor for the editor canvas. Present mode has none: a modal would hide behind fullscreen. */
 	code?: CodeEditor;
+	/** Equation editor for the editor canvas. */
+	math?: CodeEditor;
 	theme?: "light" | "dark";
 	/** Asks for a name; used to rename slides and views. Without it, double-click renaming is off. */
 	ask?: (label: string, value: string) => Promise<string | null>;
@@ -34,7 +36,7 @@ export interface DeckEditorProps {
 }
 
 /** Deck editing screen: slide list, canvas, saved views and speaker notes. */
-export function DeckEditor({ initial, images, notes, code, theme, ask, confirmDelete, onChange, onReady, onEngine }: DeckEditorProps) {
+export function DeckEditor({ initial, images, notes, code, math, theme, ask, confirmDelete, onChange, onReady, onEngine }: DeckEditorProps) {
 	const [deck, setDeck] = useState(initial);
 	const [current, setCurrent] = useState(0);
 	const [presenting, setPresenting] = useState<number | null>(null);
@@ -259,6 +261,7 @@ export function DeckEditor({ initial, images, notes, code, theme, ask, confirmDe
 						images={images}
 						notes={notes}
 						code={code}
+						math={math}
 						theme={theme}
 						editFrame={editFrame}
 						keepAspect={aspect !== "free"}

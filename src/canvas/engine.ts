@@ -12,6 +12,7 @@ import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw
 import { addView, CameraController, type CameraHost } from "./camera";
 import { codeSource, CODE_LINK, isCodeLink } from "./code-cards";
 import { imageFile } from "./excalidraw-export";
+import { mathFile, mathFiles, mathLatex, renderMath } from "./math";
 import { MotionSnapshot } from "./motion-snapshot";
 import { formatNoteLink } from "./note-links";
 import { allowWebEmbed } from "./web-embeds";
@@ -54,6 +55,7 @@ export class CanvasEngine {
 		slide: SlideData,
 		private onChange: (slide: SlideData) => void,
 		private code?: CodeEditor,
+		private math?: CodeEditor,
 	) {
 		this._slide = slide;
 		this.camera = new CameraController(api as unknown as CameraHost);
@@ -96,7 +98,7 @@ export class CanvasEngine {
 				return dataURL ? imageFile(id, path, dataURL, Date.now()) : null;
 			}),
 		);
-		this.api.addFiles(loaded.filter((f) => f !== null));
+		this.api.addFiles([...loaded.filter((f) => f !== null), ...Object.values(mathFiles(this._slide.elements))]);
 	}
 
 	/** Wire to Excalidraw's onChange. */
@@ -106,7 +108,9 @@ export class CanvasEngine {
 		this.sceneVersion = version;
 		this.schedulePrepare(1500);
 		this.update(pruneImages({ ...this._slide, elements: elements.filter((e) => !e.isDeleted) }));
-		for (const id of unsavedFileIds(this._slide, Object.keys(files))) void this.saveFile(id, files);
+		// Equation images are made from their LaTeX; they never go to the vault.
+		const math = new Set(this._slide.elements.flatMap((e) => (e.type === "image" && mathLatex(e) !== null && e.fileId ? [e.fileId] : [])));
+		for (const id of unsavedFileIds(this._slide, Object.keys(files))) if (!math.has(id)) void this.saveFile(id, files);
 	}
 
 	private async saveFile(id: FileId, files: BinaryFiles) {
@@ -181,6 +185,67 @@ export class CanvasEngine {
 		if (!el || !isCodeLink(el.link) || !this.code) return;
 		const source = await this.code.edit(codeSource(el));
 		if (source !== null) this.setCodeSource(el.id, source);
+	}
+
+	/** Puts an equation on the canvas, centered at a scene point (default: view center). Throws on bad LaTeX. */
+	insertMath(latex: string, at?: { x: number; y: number }) {
+		const m = renderMath(latex);
+		this.api.addFiles([mathFile(m.id, m.dataURL, Date.now())]);
+		const c = at ?? this.viewCenter();
+		const [el] = convertToExcalidrawElements([
+			{ type: "image", fileId: m.id as FileId, x: c.x - m.width / 2, y: c.y - m.height / 2, width: m.width, height: m.height, customData: { latex } },
+		]);
+		this.api.updateScene({ elements: [...this.api.getSceneElements(), el] });
+	}
+
+	/** Replaces an equation's LaTeX, keeping its scale. Undoable. Throws on bad LaTeX. */
+	setMath(id: string, latex: string) {
+		const el = this.api.getSceneElements().find((e) => e.id === id);
+		const old = el && mathLatex(el);
+		if (!el || old === null || old === undefined) return;
+		const m = renderMath(latex);
+		let scale = 1;
+		try {
+			scale = el.width / renderMath(old).width;
+		} catch {
+			// Old LaTeX no longer parses: use the natural size.
+		}
+		this.api.addFiles([mathFile(m.id, m.dataURL, Date.now())]);
+		const next = newElementWith(el as Extract<ExcalidrawElement, { type: "image" }>, {
+			fileId: m.id as FileId,
+			customData: { ...el.customData, latex },
+			width: m.width * scale,
+			height: m.height * scale,
+		});
+		const elements = this.api.getSceneElements().map((e) => (e.id === id ? next : e));
+		this.api.updateScene({ elements, captureUpdate: CaptureUpdateAction.IMMEDIATELY });
+	}
+
+	selectedMath(): ExcalidrawElement | null {
+		const ids = this.api.getAppState().selectedElementIds;
+		return this.api.getSceneElements().find((e) => ids[e.id] && mathLatex(e) !== null) ?? null;
+	}
+
+	/** Topmost equation under a screen point, if any. */
+	mathAt(clientX: number, clientY: number): ExcalidrawElement | null {
+		const p = this.sceneAt(clientX, clientY);
+		const elements = this.api.getSceneElements();
+		for (let i = elements.length - 1; i >= 0; i--) {
+			const e = elements[i];
+			if (mathLatex(e) === null) continue;
+			const [x1, y1, x2, y2] = getCommonBounds([e]);
+			if (p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2) return e;
+		}
+		return null;
+	}
+
+	/** Opens the editor on an equation (default: the selected one) and saves the result. */
+	async editMath(id?: string) {
+		const el = id ? this.api.getSceneElements().find((e) => e.id === id) : this.selectedMath();
+		const latex = el && mathLatex(el);
+		if (!el || latex === null || latex === undefined || !this.math) return;
+		const next = await this.math.edit(latex);
+		if (next !== null && next !== latex) this.setMath(el.id, next);
 	}
 
 	/** Re-measures text once fonts have loaded; text measured with a fallback font looks cut off. */

@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import type { ImageStore } from "../canvas/engine";
 import type { SlideData } from "../canvas/slide-data";
 import { exportToSvg, imageFile } from "../canvas/excalidraw-export";
+import { mathFiles } from "../canvas/math";
 
 /** Small preview of the slide's start frame, redrawn shortly after its content changes. */
 export function Thumb({ data, images }: { data: SlideData; images: ImageStore }) {
@@ -43,7 +44,7 @@ export function Thumb({ data, images }: { data: SlideData; images: ImageStore })
 
 /** Image bytes for the image elements in `elements`. Missing files are skipped. */
 async function loadFiles(elements: readonly ExcalidrawElement[], data: SlideData, images: ImageStore): Promise<BinaryFiles> {
-	const files: BinaryFiles = {};
+	const files: BinaryFiles = mathFiles(elements);
 	for (const e of elements) {
 		if (e.type !== "image" || !e.fileId || files[e.fileId]) continue;
 		const path = data.images[e.fileId];

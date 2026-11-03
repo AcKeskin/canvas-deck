@@ -4,6 +4,7 @@ import type { BinaryFiles } from "@excalidraw/excalidraw/types";
 import type { ImageStore } from "../canvas/engine";
 import type { Bounds, SlideData } from "../canvas/slide-data";
 import { exportToCanvas, imageFile } from "../canvas/excalidraw-export";
+import { mathFiles } from "../canvas/math";
 import type { Deck } from "./deck-model";
 import { pictureSize, planPages, wrapText, type PdfOptions, type PdfPage } from "./pdf-plan";
 import { buildPdf, type PdfImagePage } from "./pdf-writer";
@@ -64,9 +65,9 @@ async function renderPage(data: SlideData, page: PdfPage, files: BinaryFiles): P
 	return { jpeg: new Uint8Array(await blob.arrayBuffer()), width: canvas.width, height: canvas.height };
 }
 
-/** Image bytes for the slide's images. Missing files are skipped. */
+/** Image bytes for the slide's images and equations. Missing files are skipped. */
 export async function loadFiles(data: SlideData, images: ImageStore, cache: Map<string, string | null>): Promise<BinaryFiles> {
-	const files: BinaryFiles = {};
+	const files: BinaryFiles = mathFiles(data.elements);
 	for (const [id, path] of Object.entries(data.images)) {
 		if (!cache.has(path)) cache.set(path, await images.load(path));
 		const dataURL = cache.get(path);
